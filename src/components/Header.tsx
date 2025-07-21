@@ -13,46 +13,56 @@ const Header: React.FC = () => {
     logout();
     notifications.auth.logoutSuccess();
     navigate(ROUTES.LOGIN);
-    setIsMobileMenuOpen(false); // Закрываем мобильное меню
+    setIsMobileMenuOpen(false);
   };
 
   // Функция для стилей активной ссылки в десктопе
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+    `px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 backdrop-blur-sm ${
       isActive
-        ? 'text-blue-600 bg-blue-50'
-        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+        ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg transform hover:scale-105'
+        : 'text-gray-700 hover:text-white hover:bg-white/20 hover:backdrop-blur-md'
     }`;
 
   // Функция для стилей активной ссылки в мобильном меню
   const getMobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+    `block px-4 py-3 rounded-xl text-base font-semibold transition-all duration-300 ${
       isActive
-        ? 'text-blue-600 bg-blue-50'
-        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+        ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg'
+        : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 backdrop-blur-sm'
     }`;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 relative">
+      {/* Градиентный фон */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-800">
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-lg"></div>
+      </div>
+      
+      {/* Floating элементы */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-2 left-10 w-20 h-20 bg-gradient-to-r from-blue-400/20 to-purple-500/20 rounded-full blur-xl animate-blob"></div>
+        <div className="absolute -top-2 right-10 w-16 h-16 bg-gradient-to-r from-purple-400/20 to-indigo-400/20 rounded-full blur-xl animate-blob animation-delay-2000"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex items-center justify-between h-16">
           {/* Логотип */}
           <div className="flex-shrink-0">
             <Link 
               to={ROUTES.HOME}
-              className="text-xl sm:text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
+              className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-purple-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105"
               onClick={closeMobileMenu}
             >
-              VPNx
+              guardex
             </Link>
           </div>
 
           {/* Десктопная навигация */}
-          <nav className="hidden md:flex items-center space-x-4">
+          <nav className="hidden md:flex items-center space-x-3">
             {!isAuthenticated ? (
-              // Неавторизованный пользователь
               <>
                 <NavLink
                   to={ROUTES.HOME}
@@ -68,13 +78,13 @@ const Header: React.FC = () => {
                 </NavLink>
                 <NavLink
                   to={ROUTES.REGISTER}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-800 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:scale-105 relative overflow-hidden group"
                 >
-                  Регистрация
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <span className="relative z-10">Регистрация</span>
                 </NavLink>
               </>
             ) : (
-              // Авторизованный пользователь
               <>
                 <NavLink
                   to={ROUTES.HOME}
@@ -86,7 +96,7 @@ const Header: React.FC = () => {
                   to={ROUTES.DASHBOARD}
                   className={getNavLinkClass}
                 >
-                  Личный кабинет
+                  Кабинет
                 </NavLink>
                 <NavLink
                   to={ROUTES.SETTINGS}
@@ -95,14 +105,17 @@ const Header: React.FC = () => {
                   Настройки
                 </NavLink>
                 
-                {/* Информация о пользователе - только на больших экранах */}
-                <div className="hidden lg:flex items-center space-x-3">
-                  <span className="text-sm text-gray-600 truncate max-w-32">
-                    {user?.email}
-                  </span>
+                {/* Информация о пользователе */}
+                <div className="hidden lg:flex items-center space-x-3 ml-4">
+                  <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-gray-700 font-medium truncate max-w-32">
+                      {user?.email}
+                    </span>
+                  </div>
                   <button
                     onClick={handleLogout}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    className="bg-white/80 hover:bg-white backdrop-blur-sm text-gray-700 hover:text-red-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border border-white/30 hover:border-red-200 hover:shadow-lg transform hover:scale-105"
                   >
                     Выйти
                   </button>
@@ -112,7 +125,7 @@ const Header: React.FC = () => {
                 <div className="lg:hidden">
                   <button
                     onClick={handleLogout}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    className="bg-white/80 hover:bg-white backdrop-blur-sm text-gray-700 hover:text-red-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border border-white/30 hover:border-red-200"
                   >
                     Выйти
                   </button>
@@ -125,17 +138,16 @@ const Header: React.FC = () => {
           <div className="md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors"
+              className="inline-flex items-center justify-center p-2 rounded-xl text-gray-600 hover:text-gray-800 hover:bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all duration-300 border border-white/30"
               aria-expanded="false"
             >
               <span className="sr-only">Открыть главное меню</span>
-              {/* Иконка гамбургера */}
               {!isMobileMenuOpen ? (
                 <svg
                   className="block h-6 w-6"
                   fill="none"
                   viewBox="0 0 24 24"
-                  strokeWidth="1.5"
+                  strokeWidth="2"
                   stroke="currentColor"
                   aria-hidden="true"
                 >
@@ -150,7 +162,7 @@ const Header: React.FC = () => {
                   className="block h-6 w-6"
                   fill="none"
                   viewBox="0 0 24 24"
-                  strokeWidth="1.5"
+                  strokeWidth="2"
                   stroke="currentColor"
                   aria-hidden="true"
                 >
@@ -168,10 +180,9 @@ const Header: React.FC = () => {
 
       {/* Мобильное меню */}
       {isMobileMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+        <div className="md:hidden relative z-10">
+          <div className="px-4 pt-2 pb-4 space-y-2 bg-white/95 backdrop-blur-lg border-t border-white/30">
             {!isAuthenticated ? (
-              // Неавторизованный пользователь
               <>
                 <NavLink
                   to={ROUTES.HOME}
@@ -189,19 +200,22 @@ const Header: React.FC = () => {
                 </NavLink>
                 <NavLink
                   to={ROUTES.REGISTER}
-                  className="block w-full text-left bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors"
+                  className="block w-full text-center bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-800 text-white px-4 py-3 rounded-xl text-base font-bold shadow-lg transition-all duration-300 relative overflow-hidden group"
                   onClick={closeMobileMenu}
                 >
-                  Регистрация
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <span className="relative z-10">Регистрация</span>
                 </NavLink>
               </>
             ) : (
-              // Авторизованный пользователь
               <>
                 {/* Информация о пользователе в мобильном меню */}
-                <div className="px-3 py-2 border-b border-gray-200 mb-2">
-                  <div className="text-base font-medium text-gray-800">Пользователь</div>
-                  <div className="text-sm text-gray-600 truncate">{user?.email}</div>
+                <div className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/30 mb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <div className="text-base font-semibold text-gray-800">Пользователь</div>
+                  </div>
+                  <div className="text-sm text-gray-600 truncate mt-1">{user?.email}</div>
                 </div>
                 
                 <NavLink
@@ -226,10 +240,9 @@ const Header: React.FC = () => {
                   Настройки
                 </NavLink>
                 
-                {/* Кнопка выхода в мобильном меню */}
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                  className="block w-full text-center px-4 py-3 rounded-xl text-base font-semibold text-red-600 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 backdrop-blur-sm border border-red-200 hover:border-red-500 transition-all duration-300"
                 >
                   Выйти из аккаунта
                 </button>
