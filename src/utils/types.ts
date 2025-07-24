@@ -102,4 +102,29 @@ export interface Notification {
   message: string;
   duration?: number;
   timestamp: Date;
+}
+
+// Типы для маркетплейса VPN
+export interface VpnOffer {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  flag: string;
+  server: string;
+  plan: 'basic' | 'premium' | 'enterprise';
+  speed: string;
+  ping: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  features: string[];
+  rating: number;
+  reviewsCount: number;
+  sellerName: string;
+  uptime: number;
+  isOnline: boolean;
+  bandwidth: string;
+  protocols: string[];
+  logPolicy: 'no-logs' | 'minimal-logs';
+  simultaneousConnections: number;
 } 

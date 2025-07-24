@@ -506,7 +506,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               <button
-                onClick={() => navigate('/marketplace')}
+                onClick={() => navigate(ROUTES.MARKETPLACE)}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>

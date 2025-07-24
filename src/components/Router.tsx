@@ -5,6 +5,7 @@ import Register from '../pages/Register';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Settings from '../pages/Settings';
+import Marketplace from '../pages/Marketplace';
 import { ROUTES } from '../utils/routes';
 import Header from './Header';
 import ProtectedRoute from './ProtectedRoute';
@@ -45,6 +46,14 @@ const Router: React.FC = () => {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path={ROUTES.MARKETPLACE} 
+          element={
+            <ProtectedRoute>
+              <Marketplace />
             </ProtectedRoute>
           } 
         />

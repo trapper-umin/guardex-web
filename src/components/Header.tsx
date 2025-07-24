@@ -99,6 +99,12 @@ const Header: React.FC = () => {
                   Кабинет
                 </NavLink>
                 <NavLink
+                  to={ROUTES.MARKETPLACE}
+                  className={getNavLinkClass}
+                >
+                  Маркетплейс
+                </NavLink>
+                <NavLink
                   to={ROUTES.SETTINGS}
                   className={getNavLinkClass}
                 >
@@ -231,6 +237,13 @@ const Header: React.FC = () => {
                   onClick={closeMobileMenu}
                 >
                   Личный кабинет
+                </NavLink>
+                <NavLink
+                  to={ROUTES.MARKETPLACE}
+                  className={getMobileNavLinkClass}
+                  onClick={closeMobileMenu}
+                >
+                  Маркетплейс
                 </NavLink>
                 <NavLink
                   to={ROUTES.SETTINGS}

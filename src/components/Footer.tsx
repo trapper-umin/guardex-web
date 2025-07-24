@@ -112,7 +112,7 @@ const Footer: React.FC<FooterProps> = ({ variant = 'full' }) => {
                   </Link>
                 </li>
                 <li>
-                  <Link to={ROUTES.REGISTER} className="text-gray-300 hover:text-blue-400 transition-colors">
+                  <Link to={ROUTES.MARKETPLACE} className="text-gray-300 hover:text-blue-400 transition-colors">
                     Купить VPN
                   </Link>
                 </li>

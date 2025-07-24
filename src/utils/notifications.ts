@@ -49,6 +49,7 @@ export const notifications = {
   },
 
   general: {
+    success: (message: string) => notifications.success(message),
     loadingError: () => notifications.error('Ошибка загрузки данных. Попробуйте обновить страницу.'),
     networkError: () => notifications.error('Проблема с подключением к серверу'),
   }

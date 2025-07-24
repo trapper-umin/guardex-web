@@ -25,7 +25,7 @@ const Home: React.FC = () => {
               Начать продавать VPN
             </Link>
             <Link
-              to={ROUTES.REGISTER}
+              to={ROUTES.MARKETPLACE}
               className="border-2 border-white hover:bg-white hover:text-blue-700 text-white font-bold text-lg px-10 py-4 rounded-xl transition-all duration-300 transform hover:-translate-y-1"
             >
               Найти VPN
@@ -163,7 +163,7 @@ const Home: React.FC = () => {
                 </div>
               </div>
               <Link
-                to={ROUTES.REGISTER}
+                to={ROUTES.MARKETPLACE}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 Выбрать VPN
