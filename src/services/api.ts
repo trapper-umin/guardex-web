@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { VpnSubscription } from "../utils/types";
 
 // Создаем базовый axios инстанс для будущей интеграции с backend
 const api = axios.create({
@@ -21,11 +22,101 @@ export interface SubscriptionStatus {
   isActive: boolean;
   daysLeft: number;
   expiresAt: string;
+  subscriptions: VpnSubscription[];
 }
 
 export interface UserProfile {
   email: string;
 }
+
+// Демонстрационные данные для VPN подписок
+const mockSubscriptions: VpnSubscription[] = [
+  {
+    id: '1',
+    name: 'Premium Germany VPN',
+    country: 'Germany',
+    countryCode: 'DE',
+    flag: '🇩🇪',
+    server: 'Berlin-Premium-01',
+    isActive: true,
+    daysLeft: 25,
+    expiresAt: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
+    speed: '1 Gb/s',
+    ping: 25,
+    load: 35,
+    plan: 'premium',
+    price: 9.99,
+    currency: 'USD'
+  },
+  {
+    id: '2', 
+    name: 'Basic USA VPN',
+    country: 'United States',
+    countryCode: 'US', 
+    flag: '🇺🇸',
+    server: 'NewYork-Basic-03',
+    isActive: true,
+    daysLeft: 12,
+    expiresAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
+    speed: '500 Mb/s',
+    ping: 45,
+    load: 68,
+    plan: 'basic',
+    price: 4.99,
+    currency: 'USD'
+  },
+  {
+    id: '3',
+    name: 'Enterprise Japan VPN',
+    country: 'Japan',
+    countryCode: 'JP',
+    flag: '🇯🇵',
+    server: 'Tokyo-Enterprise-01',
+    isActive: true,
+    daysLeft: 3,
+    expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    speed: '2 Gb/s',
+    ping: 15,
+    load: 22,
+    plan: 'enterprise',
+    price: 19.99,
+    currency: 'USD'
+  },
+  {
+    id: '4',
+    name: 'Premium UK VPN',
+    country: 'United Kingdom',
+    countryCode: 'GB',
+    flag: '🇬🇧',
+    server: 'London-Premium-02',
+    isActive: false,
+    daysLeft: 0,
+    expiresAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    speed: '1 Gb/s',
+    ping: 30,
+    load: 45,
+    plan: 'premium',
+    price: 9.99,
+    currency: 'USD'
+  },
+  {
+    id: '5',
+    name: 'Basic Netherlands VPN',
+    country: 'Netherlands',
+    countryCode: 'NL',
+    flag: '🇳🇱',
+    server: 'Amsterdam-Basic-01',
+    isActive: true,
+    daysLeft: 18,
+    expiresAt: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000).toISOString(),
+    speed: '300 Mb/s',
+    ping: 20,
+    load: 52,
+    plan: 'basic',
+    price: 4.99,
+    currency: 'USD'
+  }
+];
 
 // Mock-функция регистрации
 export async function register(email: string, password: string): Promise<void> {
@@ -94,6 +185,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
       isActive: daysLeft > 0,
       daysLeft,
       expiresAt: subscription.expiresAt,
+      subscriptions: mockSubscriptions, // Возвращаем демонстрационные данные
     };
   }
   
@@ -102,6 +194,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     isActive: true,
     daysLeft: 27,
     expiresAt: "2025-07-01",
+    subscriptions: mockSubscriptions, // Возвращаем демонстрационные данные
   };
 }
 
@@ -170,4 +263,82 @@ export async function mockPurchaseSubscription(months: number): Promise<void> {
   };
   
   localStorage.setItem('mockSubscription', JSON.stringify(subscription));
+}
+
+// Mock-функция получения всех подписок пользователя
+export async function getUserSubscriptions(): Promise<VpnSubscription[]> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  return mockSubscriptions;
+}
+
+// Mock-функция получения VPN конфигурации для конкретной подписки
+export async function getVpnConfigForSubscription(subscriptionId: string): Promise<Blob> {
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  
+  const subscription = mockSubscriptions.find(sub => sub.id === subscriptionId);
+  if (!subscription) {
+    throw new Error('Подписка не найдена');
+  }
+  
+  if (!subscription.isActive) {
+    throw new Error('Подписка неактивна');
+  }
+  
+  // Создаем mock содержимое VPN конфигурации для конкретной подписки
+  const configContent = `# VPN config for ${subscription.name}
+# Server: ${subscription.server}
+# Country: ${subscription.country}
+# Speed: ${subscription.speed}
+
+[Interface]
+PrivateKey = mock_private_key_${subscriptionId}_${Date.now()}
+Address = 10.0.0.2/24
+
+[Peer]
+PublicKey = mock_server_public_key_${subscriptionId}
+Endpoint = ${subscription.server.toLowerCase().replace(/[^a-z0-9]/g, '-')}.vpn.example.com:51820
+AllowedIPs = 0.0.0.0/0
+
+# Сгенерировано: ${new Date().toLocaleString('ru-RU')}
+# Подписка: ${subscription.name}`;
+
+  return new Blob([configContent], { type: 'text/plain' });
+}
+
+// Mock-функция перегенерации VPN конфигурации для конкретной подписки
+export async function regenerateVpnConfigForSubscription(subscriptionId: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  
+  const subscription = mockSubscriptions.find(sub => sub.id === subscriptionId);
+  if (!subscription) {
+    throw new Error('Подписка не найдена');
+  }
+  
+  if (!subscription.isActive) {
+    throw new Error('Подписка неактивна');
+  }
+  
+  // В реальном приложении здесь будет запрос на сервер для перегенерации ключей
+  console.log(`Перегенерация ключа для подписки: ${subscription.name}`);
+}
+
+// Mock-функция продления конкретной подписки
+export async function extendSubscription(subscriptionId: string, months: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  
+  const subscription = mockSubscriptions.find(sub => sub.id === subscriptionId);
+  if (!subscription) {
+    throw new Error('Подписка не найдена');
+  }
+  
+  // В реальном приложении здесь был бы запрос к API
+  // Пока просто обновляем локальные данные
+  const currentDate = subscription.isActive ? new Date(subscription.expiresAt) : new Date();
+  currentDate.setMonth(currentDate.getMonth() + months);
+  
+  subscription.expiresAt = currentDate.toISOString();
+  subscription.daysLeft = Math.ceil((currentDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  subscription.isActive = true;
+  
+  console.log(`Продление подписки ${subscription.name} на ${months} мес.`);
 } 

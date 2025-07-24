@@ -2,7 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../utils/routes';
-import { getSubscriptionStatus, getVpnConfig, regenerateVpnConfig, type SubscriptionStatus } from '../services/api';
+import { 
+  getSubscriptionStatus, 
+  getUserSubscriptions,
+  getVpnConfigForSubscription, 
+  regenerateVpnConfigForSubscription,
+  extendSubscription,
+  type SubscriptionStatus 
+} from '../services/api';
+import type { VpnSubscription } from '../utils/types';
 import { SubscriptionModal, Footer } from '../components';
 import { buttonStyles, cardStyles } from '../utils/styles';
 import { notifications } from '../utils/notifications';
@@ -13,10 +21,18 @@ const Dashboard: React.FC = () => {
   
   // Состояния для данных и лоадеров
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [subscriptions, setSubscriptions] = useState<VpnSubscription[]>([]);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
-  const [isDownloadingConfig, setIsDownloadingConfig] = useState(false);
-  const [isRegeneratingKey, setIsRegeneratingKey] = useState(false);
+  const [downloadingConfigs, setDownloadingConfigs] = useState<Set<string>>(new Set());
+  const [regeneratingKeys, setRegeneratingKeys] = useState<Set<string>>(new Set());
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [selectedSubscriptionForExtension, setSelectedSubscriptionForExtension] = useState<string | null>(null);
+  
+  // Состояния для фильтров
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [planFilter, setPlanFilter] = useState<'all' | 'basic' | 'premium' | 'enterprise'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'expires' | 'country'>('expires');
+  
   // Проверка авторизации при загрузке компонента
   useEffect(() => {
     if (!isAuthenticated) {
@@ -35,8 +51,12 @@ const Dashboard: React.FC = () => {
   const loadSubscriptionData = async () => {
     try {
       setIsLoadingSubscription(true);
-      const data = await getSubscriptionStatus();
-      setSubscription(data);
+      const [subscriptionStatus, userSubscriptions] = await Promise.all([
+        getSubscriptionStatus(),
+        getUserSubscriptions()
+      ]);
+      setSubscription(subscriptionStatus);
+      setSubscriptions(userSubscriptions);
     } catch (error) {
       console.error('Ошибка загрузки данных подписки:', error);
       notifications.general.loadingError();
@@ -45,17 +65,63 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Функция для скачивания VPN конфигурации
-  const handleDownloadConfig = async () => {
+  // Функция фильтрации и сортировки подписок
+  const getFilteredAndSortedSubscriptions = () => {
+    let filtered = [...subscriptions];
+
+    // Фильтрация по статусу
+    if (statusFilter === 'active') {
+      filtered = filtered.filter(sub => sub.isActive);
+    } else if (statusFilter === 'inactive') {
+      filtered = filtered.filter(sub => !sub.isActive);
+    }
+
+    // Фильтрация по плану
+    if (planFilter !== 'all') {
+      filtered = filtered.filter(sub => sub.plan === planFilter);
+    }
+
+    // Сортировка
+    filtered.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'expires':
+          aValue = new Date(a.expiresAt).getTime();
+          bValue = new Date(b.expiresAt).getTime();
+          break;
+        case 'country':
+          aValue = a.country.toLowerCase();
+          bValue = b.country.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return -1;
+      if (aValue > bValue) return 1;
+      return 0;
+    });
+
+    return filtered;
+  };
+
+  // Функция для скачивания VPN конфигурации конкретной подписки
+  const handleDownloadConfig = async (subscriptionId: string, subscriptionName: string) => {
     try {
-      setIsDownloadingConfig(true);
-      const configBlob = await getVpnConfig();
+      setDownloadingConfigs(prev => new Set(prev).add(subscriptionId));
+      const configBlob = await getVpnConfigForSubscription(subscriptionId);
       
       // Создаем URL для скачивания файла
       const url = URL.createObjectURL(configBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `vpn-config-${Date.now()}.conf`;
+      link.download = `vpn-config-${subscriptionName.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.conf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -68,21 +134,42 @@ const Dashboard: React.FC = () => {
       console.error('Ошибка скачивания конфигурации:', error);
       notifications.vpn.configError();
     } finally {
-      setIsDownloadingConfig(false);
+      setDownloadingConfigs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(subscriptionId);
+        return newSet;
+      });
     }
   };
 
-  // Функция для перегенерации ключа
-  const handleRegenerateKey = async () => {
+  // Функция для перегенерации ключа конкретной подписки
+  const handleRegenerateKey = async (subscriptionId: string) => {
     try {
-      setIsRegeneratingKey(true);
-      await regenerateVpnConfig();
+      setRegeneratingKeys(prev => new Set(prev).add(subscriptionId));
+      await regenerateVpnConfigForSubscription(subscriptionId);
       notifications.vpn.keyRegenerated();
     } catch (error) {
       console.error('Ошибка перегенерации ключа:', error);
       notifications.vpn.keyRegenerationError();
     } finally {
-      setIsRegeneratingKey(false);
+      setRegeneratingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(subscriptionId);
+        return newSet;
+      });
+    }
+  };
+
+  // Функция для продления конкретной подписки
+  const handleExtendSubscription = async (subscriptionId: string, months: number = 1) => {
+    try {
+      await extendSubscription(subscriptionId, months);
+      // Перезагружаем данные о подписках
+      await loadSubscriptionData();
+      notifications.subscription.paymentSuccess();
+    } catch (error) {
+      console.error('Ошибка продления подписки:', error);
+      notifications.general.loadingError();
     }
   };
 
@@ -122,9 +209,9 @@ const Dashboard: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Статус подписки</p>
-                <p className={`text-lg font-bold ${subscription?.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                  {isLoadingSubscription ? 'Загрузка...' : subscription?.isActive ? 'Активна' : 'Неактивна'}
+                <p className="text-sm text-gray-600">Активные подписки</p>
+                <p className={`text-lg font-bold ${subscriptions.filter(sub => sub.isActive).length > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {isLoadingSubscription ? 'Загрузка...' : subscriptions.filter(sub => sub.isActive).length}
                 </p>
               </div>
             </div>
@@ -138,9 +225,17 @@ const Dashboard: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Осталось дней</p>
-                <p className={`text-lg font-bold ${subscription && subscription.daysLeft <= 3 ? 'text-red-600' : 'text-gray-900'}`}>
-                  {isLoadingSubscription ? '...' : subscription?.daysLeft || 0}
+                <p className="text-sm text-gray-600">Мин. до истечения</p>
+                <p className={`text-lg font-bold ${(() => {
+                  const activeSubs = subscriptions.filter(sub => sub.isActive);
+                  if (activeSubs.length === 0) return 'text-gray-900';
+                  const minDays = Math.min(...activeSubs.map(sub => sub.daysLeft));
+                  return minDays <= 3 ? 'text-red-600' : 'text-gray-900';
+                })()}`}>
+                  {isLoadingSubscription ? '...' : (() => {
+                    const activeSubs = subscriptions.filter(sub => sub.isActive);
+                    return activeSubs.length > 0 ? Math.min(...activeSubs.map(sub => sub.daysLeft)) + ' дней' : '0 дней';
+                  })()}
                 </p>
               </div>
             </div>
@@ -156,7 +251,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Серверы VPN</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {subscription?.isActive ? '1 активен' : 'Нет активных'}
+                  {isLoadingSubscription ? '...' : `${subscriptions.filter(sub => sub.isActive).length} активных`}
                 </p>
               </div>
             </div>
@@ -166,16 +261,16 @@ const Dashboard: React.FC = () => {
         {/* Основные секции */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Мои подписки */}
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-4 sm:p-8 hover:shadow-2xl transition-shadow duration-300">
+            <div className="flex items-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Мои подписки</h2>
-                <p className="text-gray-600">Управление VPN-ключами</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Мои подписки</h2>
+                <p className="text-sm sm:text-base text-gray-600 hidden sm:block">Управление VPN-ключами</p>
               </div>
             </div>
 
@@ -184,104 +279,196 @@ const Dashboard: React.FC = () => {
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                 <span className="ml-3 text-gray-600">Загрузка подписок...</span>
               </div>
-            ) : subscription ? (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded-full mr-3 ${subscription.isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                      <span className="font-semibold text-gray-900">Premium VPN</span>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${subscription.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {subscription.isActive ? 'Активна' : 'Неактивна'}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    <p>Истекает: {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}</p>
-                    <p>Осталось: {subscription.daysLeft} дней</p>
-                  </div>
-                  
-                  {subscription.daysLeft <= 7 && subscription.isActive && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
-                      <div className="flex items-center">
-                        <div className="text-yellow-500 text-lg mr-2">⚠️</div>
-                        <p className="text-sm text-yellow-800">
-                          Подписка заканчивается через {subscription.daysLeft} {subscription.daysLeft === 1 ? 'день' : 'дня'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={handleDownloadConfig}
-                      disabled={isDownloadingConfig || !subscription?.isActive}
-                      className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
-                        subscription?.isActive 
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-1' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title={!subscription?.isActive ? 'Необходима активная подписка' : ''}
+            ) : subscriptions.length > 0 ? (
+              <div>
+                {/* Фильтры */}
+                <div className="mb-4 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    {/* Фильтр по статусу */}
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                      className="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      {isDownloadingConfig ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Скачивание...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                          </svg>
-                          Скачать ключ
-                        </>
-                      )}
-                    </button>
+                      <option value="all">Все статусы</option>
+                      <option value="active">Активные</option>
+                      <option value="inactive">Неактивные</option>
+                    </select>
 
-                    <button
-                      onClick={handleRegenerateKey}
-                      disabled={isRegeneratingKey || !subscription?.isActive}
-                      className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
-                        subscription?.isActive 
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-1' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title={!subscription?.isActive ? 'Необходима активная подписка' : ''}
+                    {/* Фильтр по плану */}
+                    <select
+                      value={planFilter}
+                      onChange={(e) => setPlanFilter(e.target.value as typeof planFilter)}
+                      className="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      {isRegeneratingKey ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Обновление...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.25,13.97 6,13 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,11 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z"/>
-                          </svg>
-                          Обновить ключ
-                        </>
-                      )}
-                    </button>
+                      <option value="all">Все планы</option>
+                      <option value="basic">Basic</option>
+                      <option value="premium">Premium</option>
+                      <option value="enterprise">Enterprise</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Сортировка */}
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                      className="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="expires">По дате истечения</option>
+                      <option value="name">По названию</option>
+                      <option value="country">По стране</option>
+                    </select>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setIsSubscriptionModalOpen(true)}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                {/* Контейнер для прокрутки подписок */}
+                <div 
+                  className="max-h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
+                  style={{
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#D1D5DB #F3F4F6'
+                  }}
                 >
-                  Продлить подписку
-                </button>
+                  {getFilteredAndSortedSubscriptions().length > 0 ? (
+                    getFilteredAndSortedSubscriptions().map((sub) => (
+                      <div key={sub.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border border-blue-100 hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center min-w-0 flex-1">
+                            <div className="text-xl sm:text-2xl mr-2 sm:mr-3 flex-shrink-0">{sub.flag}</div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center">
+                                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full mr-2 flex-shrink-0 ${sub.isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                                <span className="font-semibold text-gray-900 text-sm sm:text-base truncate">{sub.name}</span>
+                              </div>
+                              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block truncate">{sub.server}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
+                            <span className={`hidden sm:inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                              sub.plan === 'enterprise' ? 'bg-purple-100 text-purple-800' :
+                              sub.plan === 'premium' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {sub.plan === 'enterprise' ? 'Enterprise' : sub.plan === 'premium' ? 'Premium' : 'Basic'}
+                            </span>
+                            <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${sub.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {sub.isActive ? 'Активна' : 'Неактивна'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-4">
+                          <div className="text-center">
+                            <div className="text-xs sm:text-sm text-gray-600">Истекает</div>
+                            <div className="font-semibold text-gray-900 text-xs sm:text-base">
+                              {new Date(sub.expiresAt).toLocaleDateString('ru-RU')}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs sm:text-sm text-gray-600">Осталось</div>
+                            <div className={`font-semibold text-xs sm:text-base ${sub.daysLeft <= 7 && sub.isActive ? 'text-red-600' : 'text-gray-900'}`}>
+                              {sub.daysLeft} дней
+                            </div>
+                          </div>
+                          <div className="text-center hidden sm:block">
+                            <div className="text-sm text-gray-600">Скорость</div>
+                            <div className="font-semibold text-gray-900">{sub.speed}</div>
+                          </div>
+                          <div className="text-center hidden sm:block">
+                            <div className="text-sm text-gray-600">Пинг</div>
+                            <div className="font-semibold text-gray-900">{sub.ping}ms</div>
+                          </div>
+                        </div>
+                        
+                        {sub.daysLeft <= 7 && sub.isActive && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 sm:p-3 mb-3">
+                            <div className="flex items-center">
+                              <div className="text-yellow-500 text-base sm:text-lg mr-2 flex-shrink-0">⚠️</div>
+                              <p className="text-xs sm:text-sm text-yellow-800">
+                                <span className="hidden sm:inline">Подписка заканчивается через {sub.daysLeft} {sub.daysLeft === 1 ? 'день' : 'дня'}</span>
+                                <span className="sm:hidden">Истекает через {sub.daysLeft}д</span>
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => handleDownloadConfig(sub.id, sub.name)}
+                            disabled={downloadingConfigs.has(sub.id) || !sub.isActive}
+                            className={`flex-1 flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              sub.isActive 
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow hover:shadow-md' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                            title={!sub.isActive ? 'Необходима активная подписка' : ''}
+                          >
+                            {downloadingConfigs.has(sub.id) ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1.5"></div>
+                                <span className="hidden sm:inline">Загрузка...</span>
+                                <span className="sm:hidden">...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                </svg>
+                                <span className="hidden sm:inline">Скачать</span>
+                                <span className="sm:hidden">Ключ</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={() => handleRegenerateKey(sub.id)}
+                            disabled={regeneratingKeys.has(sub.id) || !sub.isActive}
+                            className={`flex-1 flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              sub.isActive 
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow hover:shadow-md' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                            title={!sub.isActive ? 'Необходима активная подписка' : ''}
+                          >
+                            {regeneratingKeys.has(sub.id) ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1.5"></div>
+                                <span className="hidden sm:inline">Обновление...</span>
+                                <span className="sm:hidden">...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.25,13.97 6,13 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,11 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z"/>
+                                </svg>
+                                <span className="hidden sm:inline">Обновить</span>
+                                <span className="sm:hidden">🔄</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={() => handleExtendSubscription(sub.id)}
+                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-2 px-3 rounded-lg shadow hover:shadow-md transition-all duration-200 text-sm"
+                          >
+                            Продлить
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 text-4xl mb-4">🔍</div>
+                      <p className="text-gray-600 text-sm">Нет подписок, соответствующих выбранным фильтрам</p>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="text-gray-400 text-6xl mb-4">🔒</div>
-                <p className="text-gray-600 mb-4">У вас пока нет активных подписок</p>
-                <button 
-                  onClick={() => setIsSubscriptionModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  Купить подписку
-                </button>
+              <div className="text-center py-6 sm:py-8">
+                <div className="text-gray-400 text-4xl sm:text-6xl mb-3 sm:mb-4">🔒</div>
+                <p className="text-gray-600 text-sm sm:text-base">У вас пока нет активных подписок</p>
               </div>
             )}
           </div>

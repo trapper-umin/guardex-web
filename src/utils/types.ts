@@ -11,6 +11,25 @@ export interface VpnServer {
   premium: boolean;
 }
 
+// Интерфейс для VPN подписки
+export interface VpnSubscription {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  flag: string;
+  server: string;
+  isActive: boolean;
+  daysLeft: number;
+  expiresAt: string;
+  speed: string;
+  ping: number;
+  load: number;
+  plan: 'basic' | 'premium' | 'enterprise';
+  price: number;
+  currency: string;
+}
+
 export interface VpnConnection {
   status: 'connected' | 'disconnected' | 'connecting' | 'error';
   server?: VpnServer;
