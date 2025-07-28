@@ -29,7 +29,7 @@ const Dashboard: React.FC = () => {
   const [selectedSubscriptionForExtension, setSelectedSubscriptionForExtension] = useState<string | null>(null);
   
   // Состояния для фильтров
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
   const [planFilter, setPlanFilter] = useState<'all' | 'basic' | 'premium' | 'enterprise'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'expires' | 'country'>('expires');
   
@@ -541,7 +541,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               <button
-                onClick={() => navigate('/seller')}
+                onClick={() => navigate(ROUTES.SELLER_DASHBOARD)}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>

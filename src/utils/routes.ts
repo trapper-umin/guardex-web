@@ -9,6 +9,8 @@ export const ROUTES = {
   SETTINGS: '/settings',
   PRICING: '/pricing',
   MARKETPLACE: '/marketplace',
+  SELLER_DASHBOARD: '/seller',
+  CREATE_SERVER: '/seller/create',
 } as const;
 
 // Типы для TypeScript

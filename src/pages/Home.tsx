@@ -19,7 +19,7 @@ const Home: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link
-              to={ROUTES.REGISTER}
+              to={ROUTES.SELLER_DASHBOARD}
               className="bg-white hover:bg-gray-100 text-blue-700 font-bold text-lg px-10 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
               Начать продавать VPN
@@ -86,7 +86,7 @@ const Home: React.FC = () => {
                 </div>
               </div>
               <Link
-                to={ROUTES.REGISTER}
+                to={ROUTES.SELLER_DASHBOARD}
                 className={`inline-block ${buttonStyles.primary} text-lg px-8 py-4 shadow-lg hover:shadow-xl`}
               >
                 Стать продавцом
@@ -265,7 +265,7 @@ const Home: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to={ROUTES.REGISTER}
+              to={ROUTES.SELLER_DASHBOARD}
               className="bg-white hover:bg-gray-100 text-blue-600 font-bold text-lg px-10 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
               Начать зарабатывать

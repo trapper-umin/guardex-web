@@ -6,6 +6,8 @@ import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Settings from '../pages/Settings';
 import Marketplace from '../pages/Marketplace';
+import SellerDashboard from '../pages/SellerDashboard';
+import CreateServer from '../pages/CreateServer';
 import { ROUTES } from '../utils/routes';
 import Header from './Header';
 import ProtectedRoute from './ProtectedRoute';
@@ -54,6 +56,22 @@ const Router: React.FC = () => {
           element={
             <ProtectedRoute>
               <Marketplace />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path={ROUTES.SELLER_DASHBOARD} 
+          element={
+            <ProtectedRoute>
+              <SellerDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path={ROUTES.CREATE_SERVER} 
+          element={
+            <ProtectedRoute>
+              <CreateServer />
             </ProtectedRoute>
           } 
         />
