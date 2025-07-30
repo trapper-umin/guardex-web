@@ -14,19 +14,56 @@ import type {
   VpnServiceConfig
 } from "../utils/types";
 
-// Создаем базовый axios инстанс для будущей интеграции с backend
+// Создаем базовый axios инстанс для интеграции с backend через API Gateway
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: "http://localhost:8080/api",
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Добавляем автоматическую подстановку токена из localStorage
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("authToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// Перехватчик ответов для обработки ошибок
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.data) {
+      // Если backend вернул структурированную ошибку
+      const errorData = error.response.data;
+      if (errorData.message) {
+        throw new Error(errorData.message);
+      }
+      if (errorData.error) {
+        throw new Error(errorData.error);
+      }
+    }
+    
+    // Обработка сетевых ошибок
+    if (error.code === 'NETWORK_ERROR' || !error.response) {
+      throw new Error('Не удается подключиться к серверу. Проверьте подключение к интернету.');
+    }
+    
+    // Обработка HTTP статусов
+    switch (error.response?.status) {
+      case 401:
+        throw new Error('Неверный email или пароль');
+      case 409:
+        throw new Error('Пользователь с таким email уже существует');
+      case 500:
+        throw new Error('Внутренняя ошибка сервера. Попробуйте позже.');
+      default:
+        throw new Error(error.message || 'Произошла ошибка. Попробуйте позже.');
+    }
+  }
+);
 
 export default api;
 
@@ -38,8 +75,35 @@ export interface SubscriptionStatus {
   subscriptions: VpnSubscription[];
 }
 
+// Типы для аутентификации (соответствуют backend)
 export interface UserProfile {
+  id: number;
   email: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface LoginResponse {
+  token: string;
+  type: string;
+  user: UserProfile;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+  message: string;
+  statusCode: number;
+  timestamp: string;
 }
 
 // Демонстрационные данные для VPN подписок
@@ -131,55 +195,67 @@ const mockSubscriptions: VpnSubscription[] = [
   }
 ];
 
-// Mock-функция регистрации
-export async function register(email: string, password: string): Promise<void> {
-  // Имитация сетевого запроса
-  await new Promise((resolve) => setTimeout(resolve, 800));
+// Функция регистрации с автоматической авторизацией
+export async function register(email: string, password: string): Promise<LoginResponse> {
+  const requestData: RegisterRequest = { email, password };
   
-  // Проверяем есть ли уже такой пользователь (в реальности это будет делать backend)
-  const users = JSON.parse(localStorage.getItem('mockUsers') || '[]');
-  const existingUser = users.find((user: any) => user.email === email);
-  
-  if (existingUser) {
-    throw new Error('Пользователь с таким email уже существует');
+  try {
+    const response = await api.post<LoginResponse>('/auth/register', requestData);
+    const { token, user } = response.data;
+    
+    // Сохраняем токен и данные пользователя
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    
+    console.log('✅ Регистрация успешна:', user);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка регистрации:', error);
+    throw error;
   }
-  
-  // Добавляем нового пользователя
-  users.push({ email, password });
-  localStorage.setItem('mockUsers', JSON.stringify(users));
 }
 
-// Mock-функция входа
-export async function login(email: string, password: string): Promise<string> {
-  // Имитация сетевого запроса
-  await new Promise((resolve) => setTimeout(resolve, 600));
+// Функция входа в систему
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const requestData: LoginRequest = { email, password };
   
-  // Проверяем пользователя
-  const users = JSON.parse(localStorage.getItem('mockUsers') || '[]');
-  const user = users.find((u: any) => u.email === email && u.password === password);
-  
-  if (!user) {
-    throw new Error('Неверный email или пароль');
+  try {
+    const response = await api.post<LoginResponse>('/auth/login', requestData);
+    const { token, user } = response.data;
+    
+    // Сохраняем токен и данные пользователя
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    
+    console.log('✅ Вход выполнен успешно:', user);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка входа:', error);
+    throw error;
   }
-  
-  // Возвращаем mock-токен
-  const mockToken = `mock_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  localStorage.setItem('token', mockToken);
-  localStorage.setItem('currentUserEmail', email);
-  
-  return mockToken;
 }
 
-// Mock-функция получения профиля
+// Функция получения профиля пользователя
 export async function getProfile(): Promise<UserProfile> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  
-  const email = localStorage.getItem('currentUserEmail');
-  if (!email) {
-    throw new Error('Пользователь не авторизован');
+  try {
+    const response = await api.get<UserProfile>('/auth/profile');
+    
+    // Обновляем сохраненные данные пользователя
+    localStorage.setItem('currentUser', JSON.stringify(response.data));
+    
+    console.log('✅ Профиль получен:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка получения профиля:', error);
+    
+    // Если токен недействителен, очищаем данные
+    if (error instanceof Error && error.message.includes('401')) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('currentUser');
+    }
+    
+    throw error;
   }
-  
-  return { email };
 }
 
 // Mock-функция получения статуса подписки

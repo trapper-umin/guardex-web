@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../utils/routes';
-import { register as apiRegister, login as apiLogin } from '../services/api';
+import { register as apiRegister } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { buttonStyles, inputStyles } from '../utils/styles';
 import { notifications } from '../utils/notifications';
@@ -56,16 +56,13 @@ const Register: React.FC = () => {
     try {
       console.log('Данные для регистрации:', data);
       
-      // Сначала регистрируем пользователя
-      await apiRegister(data.email, data.password);
+      // Регистрируем пользователя и получаем полный ответ с токеном и данными пользователя
+      const response = await apiRegister(data.email, data.password);
       
-      // После успешной регистрации сразу авторизуем пользователя
-      const token = await apiLogin(data.email, data.password);
+      // Обновляем контекст авторизации с полученным токеном
+      await login(data.email, response.token);
       
-      // Обновляем контекст авторизации (теперь асинхронно)
-      await login(data.email, token);
-      
-      console.log('Регистрация и вход успешны!');
+      console.log('Регистрация и автоматический вход успешны!', response.user);
       notifications.auth.registerSuccess();
       
       // Перенаправляем в личный кабинет

@@ -50,13 +50,13 @@ const Login: React.FC = () => {
     try {
       console.log('Данные для входа:', data);
       
-      // Используем новую API функцию для входа
-      const token = await apiLogin(data.email, data.password);
+      // Используем API функцию для входа и получаем полный ответ
+      const response = await apiLogin(data.email, data.password);
       
-      // Обновляем контекст авторизации (теперь асинхронно)
-      await login(data.email, token);
+      // Обновляем контекст авторизации с полученным токеном
+      await login(data.email, response.token);
       
-      console.log('Вход успешен!');
+      console.log('Вход успешен!', response.user);
       notifications.auth.loginSuccess();
       
       // Перенаправляем в личный кабинет
