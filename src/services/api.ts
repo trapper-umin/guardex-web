@@ -31,12 +31,105 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Перехватчик ответов для обработки ошибок
+// Флаг для предотвращения повторных попыток обновления токена
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: any) => void;
+  reject: (error: any) => void;
+}> = [];
+
+// Функция для обработки очереди запросов
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
+// Перехватчик ответов для обработки ошибок и автоматического обновления токенов
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Если получили 401 и у нас есть refresh токен, пытаемся обновить токен
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (refreshToken && !isRefreshing) {
+        isRefreshing = true;
+        originalRequest._retry = true;
+
+        try {
+          console.log('🔄 Попытка обновления токена...');
+          const response = await api.post<LoginResponse>('/auth/refresh', { refreshToken });
+          const { token, refreshToken: newRefreshToken, user } = response.data;
+          
+          // Сохраняем новые токены
+          localStorage.setItem('authToken', token);
+          localStorage.setItem('refreshToken', newRefreshToken);
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          
+          console.log('✅ Токен успешно обновлен');
+          
+          // Обновляем заголовок для оригинального запроса
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          
+          // Обрабатываем очередь ожидающих запросов
+          processQueue(null, token);
+          
+          // Повторяем оригинальный запрос
+          return api(originalRequest);
+          
+        } catch (refreshError) {
+          console.error('❌ Ошибка обновления токена:', refreshError);
+          
+          // Очищаем данные и перенаправляем на логин
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('currentUser');
+          
+          processQueue(refreshError, null);
+          
+          // Перенаправляем на страницу логина
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+            window.location.href = '/login';
+          }
+          
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      } else if (refreshToken && isRefreshing) {
+        // Если токен уже обновляется, добавляем запрос в очередь
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      } else {
+        // Нет refresh токена - сразу перенаправляем на логин
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('currentUser');
+        
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          window.location.href = '/login';
+        }
+      }
+    }
+
+    // Стандартная обработка ошибок
     if (error.response?.data) {
-      // Если backend вернул структурированную ошибку
       const errorData = error.response.data;
       if (errorData.message) {
         throw new Error(errorData.message);
@@ -86,6 +179,7 @@ export interface UserProfile {
 export interface LoginResponse {
   token: string;
   type: string;
+  refreshToken: string;
   user: UserProfile;
 }
 
@@ -104,6 +198,20 @@ export interface ErrorResponse {
   message: string;
   statusCode: number;
   timestamp: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface SessionResponse {
+  id: number;
+  deviceInfo: string;
+  ipAddress: string;
+  createdAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  isCurrent: boolean;
 }
 
 // Демонстрационные данные для VPN подписок
@@ -201,10 +309,11 @@ export async function register(email: string, password: string): Promise<LoginRe
   
   try {
     const response = await api.post<LoginResponse>('/auth/register', requestData);
-    const { token, user } = response.data;
+    const { token, refreshToken, user } = response.data;
     
-    // Сохраняем токен и данные пользователя
+    // Сохраняем токены и данные пользователя
     localStorage.setItem('authToken', token);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('currentUser', JSON.stringify(user));
     
     console.log('✅ Регистрация успешна:', user);
@@ -221,10 +330,11 @@ export async function login(email: string, password: string): Promise<LoginRespo
   
   try {
     const response = await api.post<LoginResponse>('/auth/login', requestData);
-    const { token, user } = response.data;
+    const { token, refreshToken, user } = response.data;
     
-    // Сохраняем токен и данные пользователя
+    // Сохраняем токены и данные пользователя
     localStorage.setItem('authToken', token);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('currentUser', JSON.stringify(user));
     
     console.log('✅ Вход выполнен успешно:', user);
@@ -251,9 +361,103 @@ export async function getProfile(): Promise<UserProfile> {
     // Если токен недействителен, очищаем данные
     if (error instanceof Error && error.message.includes('401')) {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('currentUser');
     }
     
+    throw error;
+  }
+}
+
+// Функция обновления токена
+export async function refreshToken(): Promise<LoginResponse> {
+  const refreshTokenValue = localStorage.getItem('refreshToken');
+  
+  if (!refreshTokenValue) {
+    throw new Error('Refresh токен не найден');
+  }
+  
+  try {
+    const response = await api.post<LoginResponse>('/auth/refresh', { 
+      refreshToken: refreshTokenValue 
+    });
+    const { token, refreshToken: newRefreshToken, user } = response.data;
+    
+    // Сохраняем новые токены
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('refreshToken', newRefreshToken);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    
+    console.log('✅ Токен обновлен успешно');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка обновления токена:', error);
+    
+    // Очищаем данные при ошибке
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+    
+    throw error;
+  }
+}
+
+// Функция выхода из системы
+export async function logout(): Promise<void> {
+  const refreshTokenValue = localStorage.getItem('refreshToken');
+  
+  try {
+    if (refreshTokenValue) {
+      await api.post('/auth/logout', { refreshToken: refreshTokenValue });
+    }
+  } catch (error) {
+    console.warn('Ошибка при выходе из системы:', error);
+    // Продолжаем выход, даже если запрос не удался
+  } finally {
+    // Очищаем локальные данные
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+    
+    console.log('✅ Выход из системы завершен');
+  }
+}
+
+// Функция выхода из всех устройств
+export async function logoutAll(): Promise<void> {
+  try {
+    await api.post('/auth/logout-all');
+    console.log('✅ Выход из всех устройств завершен');
+  } catch (error) {
+    console.error('❌ Ошибка выхода из всех устройств:', error);
+    throw error;
+  } finally {
+    // Всегда очищаем локальные данные
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+  }
+}
+
+// Функция получения активных сессий
+export async function getActiveSessions(): Promise<SessionResponse[]> {
+  try {
+    const response = await api.get<SessionResponse[]>('/auth/sessions');
+    console.log('✅ Активные сессии получены:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка получения сессий:', error);
+    throw error;
+  }
+}
+
+// Функция отзыва конкретной сессии
+export async function revokeSession(sessionId: number): Promise<void> {
+  try {
+    await api.delete(`/auth/sessions/${sessionId}`);
+    console.log('✅ Сессия отозвана:', sessionId);
+  } catch (error) {
+    console.error('❌ Ошибка отзыва сессии:', error);
     throw error;
   }
 }

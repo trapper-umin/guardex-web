@@ -1,5 +1,16 @@
 // Сервис аутентификации с интеграцией backend
-import { register as apiRegister, login as apiLogin, getProfile as apiGetProfile, type LoginResponse, type UserProfile } from './api';
+import { 
+  register as apiRegister, 
+  login as apiLogin, 
+  getProfile as apiGetProfile,
+  logout as apiLogout,
+  logoutAll as apiLogoutAll,
+  getActiveSessions as apiGetActiveSessions,
+  revokeSession as apiRevokeSession,
+  type LoginResponse, 
+  type UserProfile,
+  type SessionResponse
+} from './api';
 
 // Типы для аутентификации (синхронизированы с backend)
 export interface AuthUser {
@@ -71,10 +82,13 @@ export const authService = {
   },
 
   // Выход из системы
-  logout: (): void => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
-    console.log('✅ Выход из системы');
+  logout: async (): Promise<void> => {
+    try {
+      await apiLogout();
+    } catch (error) {
+      console.warn('Ошибка при выходе из системы:', error);
+      // Продолжаем локальную очистку, даже если API вызов не удался
+    }
   },
 
   // Получить токен из localStorage
@@ -131,5 +145,48 @@ export const authService = {
       console.error('❌ Ошибка получения профиля в authService:', error);
       throw error;
     }
+  },
+
+  // Выход из всех устройств
+  logoutAll: async (): Promise<void> => {
+    try {
+      await apiLogoutAll();
+      console.log('✅ Выход из всех устройств выполнен');
+    } catch (error) {
+      console.error('❌ Ошибка выхода из всех устройств:', error);
+      throw error;
+    }
+  },
+
+  // Получить активные сессии
+  getActiveSessions: async (): Promise<SessionResponse[]> => {
+    try {
+      return await apiGetActiveSessions();
+    } catch (error) {
+      console.error('❌ Ошибка получения активных сессий:', error);
+      throw error;
+    }
+  },
+
+  // Отозвать конкретную сессию
+  revokeSession: async (sessionId: number): Promise<void> => {
+    try {
+      await apiRevokeSession(sessionId);
+      console.log('✅ Сессия отозвана:', sessionId);
+    } catch (error) {
+      console.error('❌ Ошибка отзыва сессии:', error);
+      throw error;
+    }
+  },
+
+  // Получить refresh токен из localStorage
+  getRefreshToken: (): string | null => {
+    return localStorage.getItem('refreshToken');
+  },
+
+  // Проверить наличие refresh токена  
+  hasRefreshToken: (): boolean => {
+    const refreshToken = authService.getRefreshToken();
+    return !!refreshToken;
   },
 }; 

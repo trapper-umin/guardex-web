@@ -5,6 +5,7 @@ import Register from '../pages/Register';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Settings from '../pages/Settings';
+import Sessions from '../pages/Sessions';
 import Marketplace from '../pages/Marketplace';
 import SellerDashboard from '../pages/SellerDashboard';
 import CreateServer from '../pages/CreateServer';
@@ -48,6 +49,14 @@ const Router: React.FC = () => {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path={ROUTES.SESSIONS} 
+          element={
+            <ProtectedRoute>
+              <Sessions />
             </ProtectedRoute>
           } 
         />

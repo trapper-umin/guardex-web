@@ -8,7 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, token: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 // Создаем контекст
@@ -77,10 +77,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Функция выхода
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-    console.log('✅ Пользователь вышел из системы');
+  const logout = async () => {
+    try {
+      await authService.logout();
+      setUser(null);
+      console.log('✅ Пользователь вышел из системы');
+    } catch (error) {
+      console.warn('Ошибка при выходе:', error);
+      // Всегда очищаем локальное состояние, даже если API вызов не удался
+      setUser(null);
+    }
   };
 
   // Вычисляемое значение авторизации
