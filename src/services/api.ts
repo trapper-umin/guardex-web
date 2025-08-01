@@ -210,8 +210,8 @@ export interface SessionResponse {
   ipAddress: string;
   createdAt: string;
   expiresAt: string;
-  isActive: boolean;
-  isCurrent: boolean;
+  active: boolean;
+  current: boolean;
 }
 
 // Демонстрационные данные для VPN подписок

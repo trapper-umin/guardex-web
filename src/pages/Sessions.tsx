@@ -103,9 +103,9 @@ const Sessions: React.FC = () => {
       
       {/* Floating элементы */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-purple-500/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute top-40 right-10 w-64 h-64 bg-gradient-to-r from-purple-400/10 to-indigo-400/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-32 left-40 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-indigo-400/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-purple-500/10 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+        <div className="absolute top-40 right-10 w-64 h-64 bg-gradient-to-r from-purple-400/10 to-indigo-400/10 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+        <div className="absolute -bottom-32 left-40 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-indigo-400/10 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
       </div>
 
       {/* Main Content */}
@@ -135,16 +135,6 @@ const Sessions: React.FC = () => {
           </div>
         )}
 
-        {/* Кнопка выхода из всех устройств */}
-        <div className="mb-8 text-center">
-          <button
-            onClick={handleLogoutAll}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105"
-          >
-            🚪 Выйти из всех устройств
-          </button>
-        </div>
-
         {/* Список сессий */}
         <div className="grid gap-6">
           {sessions.length === 0 ? (
@@ -156,7 +146,9 @@ const Sessions: React.FC = () => {
               <p className="text-gray-500">Активные сессии будут отображены здесь</p>
             </div>
           ) : (
-            sessions.map((session) => (
+            sessions
+              .sort((a, b) => (b.current ? 1 : 0) - (a.current ? 1 : 0))
+              .map((session) => (
               <div
                 key={session.id}
                 className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-shadow duration-300"
@@ -169,7 +161,7 @@ const Sessions: React.FC = () => {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {getDeviceType(session.deviceInfo).substring(2)}
                         </h3>
-                        {session.isCurrent && (
+                        {session.current && (
                           <span className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
                             Текущая сессия
                           </span>
@@ -192,8 +184,8 @@ const Sessions: React.FC = () => {
                       </div>
                       <div>
                         <span className="font-medium">Статус:</span>
-                        <span className={`ml-2 ${session.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                          {session.isActive ? 'Активна' : 'Неактивна'}
+                        <span className={`ml-2 ${session.active ? 'text-green-600' : 'text-red-600'}`}>
+                          {session.active ? 'Активна' : 'Неактивна'}
                         </span>
                       </div>
                     </div>
@@ -208,11 +200,11 @@ const Sessions: React.FC = () => {
                     )}
                   </div>
 
-                  {!session.isCurrent && (
+                  {!session.current && (
                     <div className="mt-4 md:mt-0 md:ml-6">
                       <button
                         onClick={() => handleRevokeSession(session.id)}
-                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
                       >
                         Отозвать
                       </button>
@@ -224,25 +216,16 @@ const Sessions: React.FC = () => {
           )}
         </div>
 
-        {/* Информационный блок */}
-        <div className="mt-12 bg-blue-50 border border-blue-200 rounded-3xl p-6">
-          <div className="flex items-start">
-            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
-              <span className="text-white text-xl">ℹ️</span>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                О сессиях
-              </h3>
-              <div className="text-blue-800 space-y-2">
-                <p>• Сессии автоматически истекают через 30 дней</p>
-                <p>• Вы можете иметь максимум 5 активных сессий одновременно</p>
-                <p>• При превышении лимита старые сессии автоматически отзываются</p>
-                <p>• Текущую сессию нельзя отозвать — используйте обычный выход</p>
-              </div>
-            </div>
-          </div>
+        {/* Кнопка выхода из всех устройств */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={handleLogoutAll}
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            🚪 Выйти из всех устройств
+          </button>
         </div>
+
       </div>
 
       <div className="mt-20">
