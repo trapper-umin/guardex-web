@@ -462,6 +462,22 @@ export async function revokeSession(sessionId: number): Promise<void> {
   }
 }
 
+// Функция удаления аккаунта
+export async function deleteAccount(): Promise<void> {
+  try {
+    await api.delete('/auth/account');
+    console.log('✅ Аккаунт удален');
+  } catch (error) {
+    console.error('❌ Ошибка удаления аккаунта:', error);
+    throw error;
+  } finally {
+    // Всегда очищаем локальные данные после удаления аккаунта
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+  }
+}
+
 // Mock-функция получения статуса подписки
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
   await new Promise((resolve) => setTimeout(resolve, 500));

@@ -5,4 +5,5 @@ export { default as Footer } from './Footer';
 export { default as PageWrapper } from './PageWrapper';
 export { default as ProtectedRoute } from './ProtectedRoute';
 export { default as Router } from './Router';
-export { default as SubscriptionModal } from './SubscriptionModal'; 
+export { default as SubscriptionModal } from './SubscriptionModal';
+export { default as DeleteAccountModal } from './DeleteAccountModal'; 

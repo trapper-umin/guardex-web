@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { PageWrapper, Footer } from '../components';
+import { PageWrapper, Footer, DeleteAccountModal } from '../components';
 import { buttonStyles, cardStyles } from '../utils/styles';
 import { notifications } from '../utils/notifications';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { ROUTES } from '../utils/routes';
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -21,7 +22,14 @@ const Settings: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    notifications.warning('Функция удаления аккаунта будет реализована позже');
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleAccountDeleted = () => {
+    setIsDeleteModalOpen(false);
+    // Очищаем контекст и перенаправляем на главную
+    logout();
+    navigate(ROUTES.HOME);
   };
 
   const handleExportData = () => {
@@ -289,6 +297,14 @@ const Settings: React.FC = () => {
       <div className="mt-20">
         <Footer />
       </div>
+
+      {/* Модальное окно удаления аккаунта */}
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        userEmail={user?.email || ''}
+        onAccountDeleted={handleAccountDeleted}
+      />
     </div>
   );
 };
