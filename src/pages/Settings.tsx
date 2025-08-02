@@ -284,30 +284,6 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Демонстрация защищённого контента */}
-        <div className="mt-12 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-          <div className="flex items-center">
-            <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl flex items-center justify-center mr-6 shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-2xl font-bold text-green-800 mb-2">
-                🔒 Защищённая страница
-              </h3>
-              <p className="text-green-700 leading-relaxed">
-                Эта страница доступна только авторизованным пользователям. 
-                Если вы видите это сообщение, значит защита маршрутов работает корректно!
-              </p>
-              <p className="text-green-600 text-sm mt-3 leading-relaxed">
-                Попробуйте открыть эту страницу в новой вкладке или обновить страницу — 
-                сессия должна автоматически восстановиться.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="mt-20">

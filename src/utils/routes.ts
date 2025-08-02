@@ -7,7 +7,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   PROFILE: '/profile',
   SETTINGS: '/settings',
-  SESSIONS: '/sessions',
+  SESSIONS: '/settings/sessions',
   PRICING: '/pricing',
   MARKETPLACE: '/marketplace',
   SELLER_DASHBOARD: '/seller',

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../utils/routes';
 import { notifications } from '../utils/notifications';
@@ -7,7 +7,10 @@ import { notifications } from '../utils/notifications';
 const Header: React.FC = () => {
   const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSettingsDropdownOpen, setIsSettingsDropdownOpen] = useState(false);
+  const [dropdownTimeoutId, setDropdownTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   const handleLogout = () => {
     logout();
@@ -21,8 +24,27 @@ const Header: React.FC = () => {
     `px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 backdrop-blur-sm ${
       isActive
         ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg transform hover:scale-105'
-        : 'text-gray-700 hover:text-white hover:bg-white/20 hover:backdrop-blur-md'
+        : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:backdrop-blur-md'
     }`;
+
+  // Проверка активности настроек (включая подпути)
+  const isSettingsActive = location.pathname.startsWith('/settings');
+
+  // Функции для управления выпадающим меню с задержкой
+  const handleDropdownMouseEnter = () => {
+    if (dropdownTimeoutId) {
+      clearTimeout(dropdownTimeoutId);
+      setDropdownTimeoutId(null);
+    }
+    setIsSettingsDropdownOpen(true);
+  };
+
+  const handleDropdownMouseLeave = () => {
+    const timeoutId = setTimeout(() => {
+      setIsSettingsDropdownOpen(false);
+    }, 150); // 150ms задержка
+    setDropdownTimeoutId(timeoutId);
+  };
 
   // Функция для стилей активной ссылки в мобильном меню
   const getMobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -33,6 +55,34 @@ const Header: React.FC = () => {
     }`;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  // Очистка таймаута при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeoutId) {
+        clearTimeout(dropdownTimeoutId);
+      }
+    };
+  }, [dropdownTimeoutId]);
+
+  // Закрытие выпадающего меню при клике вне его области
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (isSettingsDropdownOpen && !target.closest('[data-dropdown="settings"]')) {
+        setIsSettingsDropdownOpen(false);
+        if (dropdownTimeoutId) {
+          clearTimeout(dropdownTimeoutId);
+          setDropdownTimeoutId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSettingsDropdownOpen, dropdownTimeoutId]);
 
   return (
     <header className="sticky top-0 z-50 relative">
@@ -104,12 +154,68 @@ const Header: React.FC = () => {
                 >
                   Маркетплейс
                 </NavLink>
-                <NavLink
-                  to={ROUTES.SETTINGS}
-                  className={getNavLinkClass}
+                
+                {/* Выпадающее меню настроек */}
+                <div 
+                  className="relative"
+                  data-dropdown="settings"
+                  onMouseEnter={handleDropdownMouseEnter}
+                  onMouseLeave={handleDropdownMouseLeave}
                 >
-                  Настройки
-                </NavLink>
+                  <button
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 backdrop-blur-sm ${
+                      isSettingsActive
+                        ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg transform hover:scale-105'
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:backdrop-blur-md'
+                    }`}
+                    onClick={() => setIsSettingsDropdownOpen(!isSettingsDropdownOpen)}
+                  >
+                    <div className="flex items-center">
+                      Настройки
+                      <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${isSettingsDropdownOpen ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </button>
+                  
+                  {/* Выпадающее меню */}
+                  {isSettingsDropdownOpen && (
+                    <>
+                      {/* Невидимый мостик для курсора */}
+                      <div className="absolute top-full left-0 w-52 h-2 z-40"></div>
+                      <div className="absolute top-full left-0 mt-0.5 w-52 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-white/30 py-2 z-50 animate-in fade-in-0 zoom-in-95 duration-200">
+                      <Link
+                        to={ROUTES.SETTINGS}
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50/80 hover:text-blue-600 transition-all duration-200 rounded-lg mx-2"
+                        onClick={() => {
+                          if (dropdownTimeoutId) {
+                            clearTimeout(dropdownTimeoutId);
+                            setDropdownTimeoutId(null);
+                          }
+                          setIsSettingsDropdownOpen(false);
+                        }}
+                      >
+                        <span className="mr-3">🔧</span>
+                        Основные настройки
+                      </Link>
+                      <Link
+                        to={ROUTES.SESSIONS}
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50/80 hover:text-blue-600 transition-all duration-200 rounded-lg mx-2"
+                        onClick={() => {
+                          if (dropdownTimeoutId) {
+                            clearTimeout(dropdownTimeoutId);
+                            setDropdownTimeoutId(null);
+                          }
+                          setIsSettingsDropdownOpen(false);
+                        }}
+                      >
+                        <span className="mr-3">📱</span>
+                        Управление сессиями
+                      </Link>
+                    </div>
+                    </>
+                  )}
+                </div>
                 
                 {/* Информация о пользователе */}
                 <div className="hidden lg:flex items-center space-x-3 ml-4">
@@ -245,13 +351,27 @@ const Header: React.FC = () => {
                 >
                   Маркетплейс
                 </NavLink>
-                <NavLink
-                  to={ROUTES.SETTINGS}
-                  className={getMobileNavLinkClass}
-                  onClick={closeMobileMenu}
-                >
-                  Настройки
-                </NavLink>
+                
+                {/* Группа настроек в мобильном меню */}
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Настройки
+                  </div>
+                  <NavLink
+                    to={ROUTES.SETTINGS}
+                    className={getMobileNavLinkClass}
+                    onClick={closeMobileMenu}
+                  >
+                    🔧 Основные настройки
+                  </NavLink>
+                  <NavLink
+                    to={ROUTES.SESSIONS}
+                    className={getMobileNavLinkClass}
+                    onClick={closeMobileMenu}
+                  >
+                    📱 Управление сессиями
+                  </NavLink>
+                </div>
                 
                 <button
                   onClick={handleLogout}
