@@ -174,6 +174,7 @@ export interface UserProfile {
   email: string;
   createdAt: string;
   isActive: boolean;
+  role: 'USER' | 'SELLER' | 'ADMIN';
 }
 
 export interface LoginResponse {
@@ -202,6 +203,12 @@ export interface ErrorResponse {
 
 export interface RefreshTokenRequest {
   refreshToken: string;
+}
+
+export interface BecomeSellerRequest {
+  isSelfEmployed: boolean;
+  businessName?: string;
+  businessDescription?: string;
 }
 
 export interface SessionResponse {
@@ -1502,4 +1509,20 @@ function getTestDetails(testId: string): string {
     'config': 'Конфигурация валидна'
   };
   return details[testId] || 'Тест пройден';
+}
+
+// Функция для получения роли продавца
+export async function becomeSeller(request: BecomeSellerRequest): Promise<UserProfile> {
+  try {
+    const response = await api.post<UserProfile>('/auth/become-seller', request);
+    
+    // Обновляем сохраненные данные пользователя
+    localStorage.setItem('currentUser', JSON.stringify(response.data));
+    
+    console.log('✅ Роль продавца получена:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка получения роли продавца:', error);
+    throw error;
+  }
 } 

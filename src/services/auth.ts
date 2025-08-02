@@ -18,6 +18,7 @@ export interface AuthUser {
   email: string;
   createdAt: string;
   isActive: boolean;
+  role: 'USER' | 'SELLER' | 'ADMIN';
 }
 
 export interface AuthResponse {
@@ -47,6 +48,7 @@ export const authService = {
         email: response.user.email,
         createdAt: response.user.createdAt,
         isActive: response.user.isActive,
+        role: response.user.role,
       };
       
       return {
@@ -69,6 +71,7 @@ export const authService = {
         email: response.user.email,
         createdAt: response.user.createdAt,
         isActive: response.user.isActive,
+        role: response.user.role,
       };
       
       return {
@@ -114,6 +117,7 @@ export const authService = {
           email: parsedUser.email,
           createdAt: parsedUser.createdAt,
           isActive: parsedUser.isActive,
+          role: parsedUser.role,
         };
       }
       
@@ -124,6 +128,7 @@ export const authService = {
         email: profile.email,
         createdAt: profile.createdAt,
         isActive: profile.isActive,
+        role: profile.role,
       };
     } catch (error) {
       console.error('❌ Ошибка получения пользователя в authService:', error);
@@ -140,6 +145,7 @@ export const authService = {
         email: profile.email,
         createdAt: profile.createdAt,
         isActive: profile.isActive,
+        role: profile.role,
       };
     } catch (error) {
       console.error('❌ Ошибка получения профиля в authService:', error);

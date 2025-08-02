@@ -11,7 +11,7 @@ import {
   type SubscriptionStatus 
 } from '../services/api';
 import type { VpnSubscription } from '../utils/types';
-import { SubscriptionModal, Footer } from '../components';
+import { SubscriptionModal, Footer, BecomeSellerModal } from '../components';
 import { buttonStyles, cardStyles } from '../utils/styles';
 import { notifications } from '../utils/notifications';
 
@@ -27,6 +27,7 @@ const Dashboard: React.FC = () => {
   const [regeneratingKeys, setRegeneratingKeys] = useState<Set<string>>(new Set());
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [selectedSubscriptionForExtension, setSelectedSubscriptionForExtension] = useState<string | null>(null);
+  const [isBecomeSellerModalOpen, setIsBecomeSellerModalOpen] = useState(false);
   
   // Состояния для фильтров
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
@@ -177,6 +178,12 @@ const Dashboard: React.FC = () => {
   const handleSubscriptionSuccess = () => {
     // Перезагружаем данные о подписке
     loadSubscriptionData();
+    notifications.subscription.paymentSuccess();
+  };
+
+  // Обработчик успешного получения роли продавца
+  const handleBecomeSellerSuccess = () => {
+    setIsBecomeSellerModalOpen(false);
     notifications.subscription.paymentSuccess();
   };
 
@@ -516,37 +523,77 @@ const Dashboard: React.FC = () => {
               </button>
             </div>
 
-            {/* Стать продавцом */}
+            {/* Стать продавцом / Панель продавца */}
             <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300">
               <div className="flex items-center mb-6">
-                <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 shadow-lg ${
+                  user?.role === 'SELLER' ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'
+                }`}>
                   <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"/>
+                    {user?.role === 'SELLER' ? (
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    ) : (
+                      <path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"/>
+                    )}
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Стать продавцом</h2>
-                  <p className="text-gray-600">Зарабатывайте на VPN</p>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {user?.role === 'SELLER' ? 'Панель продавца' : 'Стать продавцом'}
+                  </h2>
+                  <p className="text-gray-600">
+                    {user?.role === 'SELLER' ? 'Управляйте VPN серверами' : 'Зарабатывайте на VPN'}
+                  </p>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 mb-6">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="text-4xl font-bold text-green-600">$5,000</div>
-                  <div className="text-sm text-gray-600 ml-2">/месяц</div>
+              {user?.role === 'SELLER' ? (
+                // Для продавца показываем статистику
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 mb-6">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">Активно</div>
+                      <div className="text-sm text-gray-600">Статус продавца</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-indigo-600">Готово</div>
+                      <div className="text-sm text-gray-600">К работе</div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700 text-center">
+                    Вы можете создавать и управлять VPN серверами
+                  </p>
                 </div>
-                <p className="text-sm text-gray-700 text-center">
-                  Средний доход успешного продавца VPN
-                </p>
-              </div>
+              ) : (
+                // Для обычного пользователя показываем возможный доход
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 mb-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="text-4xl font-bold text-green-600">$5,000</div>
+                    <div className="text-sm text-gray-600 ml-2">/месяц</div>
+                  </div>
+                  <p className="text-sm text-gray-700 text-center">
+                    Средний доход успешного продавца VPN
+                  </p>
+                </div>
+              )}
 
               <button
-                onClick={() => navigate(ROUTES.SELLER_DASHBOARD)}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
+                onClick={() => {
+                  if (user?.role === 'SELLER') {
+                    navigate(ROUTES.SELLER_DASHBOARD);
+                  } else {
+                    setIsBecomeSellerModalOpen(true);
+                  }
+                }}
+                className={`w-full font-bold py-4 px-6 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group ${
+                  user?.role === 'SELLER' 
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' 
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                } text-white`}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 <span className="relative z-10">
-                  Начать продавать
+                  {user?.role === 'SELLER' ? 'Перейти в панель' : 'Стать продавцом'}
                 </span>
               </button>
             </div>
@@ -563,6 +610,13 @@ const Dashboard: React.FC = () => {
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}
         onSuccess={handleSubscriptionSuccess}
+      />
+
+      {/* Модальное окно получения роли продавца */}
+      <BecomeSellerModal
+        isOpen={isBecomeSellerModalOpen}
+        onClose={() => setIsBecomeSellerModalOpen(false)}
+        onSuccess={handleBecomeSellerSuccess}
       />
     </div>
   );

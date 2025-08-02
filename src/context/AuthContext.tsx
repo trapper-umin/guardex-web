@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, token: string) => void;
   logout: () => Promise<void>;
+  updateUser: (userData: AuthUser) => void;
 }
 
 // Создаем контекст
@@ -89,6 +90,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Функция обновления данных пользователя
+  const updateUser = (userData: AuthUser) => {
+    setUser(userData);
+    console.log('✅ Данные пользователя обновлены:', userData);
+  };
+
   // Вычисляемое значение авторизации
   const isAuthenticated = !!user && !isLoading;
 
@@ -98,6 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
+    updateUser,
   };
 
   return (

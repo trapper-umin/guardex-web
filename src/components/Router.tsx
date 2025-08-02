@@ -12,6 +12,7 @@ import CreateServer from '../pages/CreateServer';
 import { ROUTES } from '../utils/routes';
 import Header from './Header';
 import ProtectedRoute from './ProtectedRoute';
+import SellerRoute from './SellerRoute';
 import GuestRoute from './GuestRoute';
 
 const Router: React.FC = () => {
@@ -71,17 +72,17 @@ const Router: React.FC = () => {
         <Route 
           path={ROUTES.SELLER_DASHBOARD} 
           element={
-            <ProtectedRoute>
+            <SellerRoute>
               <SellerDashboard />
-            </ProtectedRoute>
+            </SellerRoute>
           } 
         />
         <Route 
           path={ROUTES.CREATE_SERVER} 
           element={
-            <ProtectedRoute>
+            <SellerRoute>
               <CreateServer />
-            </ProtectedRoute>
+            </SellerRoute>
           } 
         />
         {/* Пока что все остальные роуты ведут на главную */}

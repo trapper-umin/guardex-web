@@ -46,7 +46,10 @@ export interface User {
   plan: 'free' | 'premium' | 'enterprise';
   subscriptionEndDate?: Date;
   avatar?: string;
+  role?: UserRole;
 }
+
+export type UserRole = 'USER' | 'SELLER' | 'ADMIN';
 
 export interface Settings {
   autoConnect: boolean;
@@ -89,6 +92,12 @@ export interface RegisterForm {
   password: string;
   confirmPassword: string;
   agreeToTerms: boolean;
+}
+
+export interface BecomeSellerForm {
+  isSelfEmployed: boolean;
+  businessName?: string;
+  businessDescription?: string;
 }
 
 // Состояния загрузки
