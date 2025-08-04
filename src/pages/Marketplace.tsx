@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../utils/routes';
 import { Footer } from '../components';
 import { notifications } from '../utils/notifications';
-import { getVpnOffers, purchaseVpnOffer } from '../services/api';
+import { getMarketplacePlans, purchaseVpnOffer } from '../services/api';
 import type { VpnOffer } from '../utils/types';
 
 const Marketplace: React.FC = () => {
@@ -43,7 +43,7 @@ const Marketplace: React.FC = () => {
   const loadVpnOffers = async () => {
     try {
       setIsLoading(true);
-      const vpnOffers = await getVpnOffers();
+      const vpnOffers = await getMarketplacePlans();
       setOffers(vpnOffers);
       setFilteredOffers(vpnOffers);
     } catch (error) {
@@ -296,12 +296,17 @@ const Marketplace: React.FC = () => {
                     {/* Бейджи */}
                     <div className="flex items-center gap-2 mb-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        offer.plan === 'enterprise' ? 'bg-purple-100 text-purple-800' :
-                        offer.plan === 'premium' ? 'bg-blue-100 text-blue-800' :
+                        offer.planType === 'enterprise' ? 'bg-purple-100 text-purple-800' :
+                        offer.planType === 'premium' ? 'bg-blue-100 text-blue-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {offer.plan === 'enterprise' ? 'Enterprise' : offer.plan === 'premium' ? 'Premium' : 'Basic'}
+                        {offer.planType === 'enterprise' ? 'Enterprise' : offer.planType === 'premium' ? 'Premium' : 'Basic'}
                       </span>
+                      {offer.isPopular && (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          ⭐ Популярный
+                        </span>
+                      )}
                       <div className="flex items-center">
                         <span className="text-yellow-500 text-sm">★</span>
                         <span className="text-sm font-medium text-gray-700 ml-1">

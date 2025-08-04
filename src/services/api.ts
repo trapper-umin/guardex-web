@@ -1,3 +1,4 @@
+// API Functions for VPN Management - Updated 2025-01-16
 import axios from "axios";
 import type { 
   VpnSubscription, 
@@ -159,6 +160,38 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Функция для аутентифицированных запросов (использует настроенный axios инстанс)
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const method = options.method || 'GET';
+  const body = options.body;
+  
+  try {
+    const response = await api({
+      url: url,
+      method: method as any,
+      data: body ? JSON.parse(body as string) : undefined,
+      headers: options.headers as any,
+    });
+    
+    // Создаем объект Response для совместимости
+    return new Response(JSON.stringify(response.data), {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers as any,
+    });
+  } catch (error: any) {
+    // Обрабатываем ошибки axios
+    if (error.response) {
+      return new Response(JSON.stringify(error.response.data), {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+      });
+    }
+    throw error;
+  }
+}
 
 // Типы для API ответов
 export interface SubscriptionStatus {
@@ -847,33 +880,29 @@ const mockVpnOffers: VpnOffer[] = [
   }
 ];
 
-// Mock-функция получения VPN предложений для маркетплейса
+// Получение VPN предложений для маркетплейса 
 export async function getVpnOffers(): Promise<VpnOffer[]> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return [...mockVpnOffers];
+  // Используем существующую функцию getMarketplacePlans для единообразия
+  return await getMarketplacePlans();
 }
 
-// Mock-функция покупки VPN предложения
+// Покупка VPN предложения
 export async function purchaseVpnOffer(
   offerId: string, 
   plan: 'monthly' | 'yearly' = 'monthly'
 ): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  
-  const offer = mockVpnOffers.find(o => o.id === offerId);
-  if (!offer) {
-    throw new Error('VPN предложение не найдено');
+  const response = await authenticatedFetch(`/vpn/marketplace/plans/${offerId}/purchase`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ billingCycle: plan }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при покупке подписки');
   }
-  
-  if (!offer.isOnline) {
-    throw new Error('VPN сервер недоступен');
-  }
-  
-  const price = plan === 'yearly' ? offer.yearlyPrice : offer.monthlyPrice;
-  console.log(`Покупка VPN "${offer.name}" (${plan}) за $${price}`);
-  
-  // В реальном приложении здесь был бы вызов API платежной системы
-  // и создание подписки в системе
 }
 
 // Мок-данные для продавца VPN
@@ -1066,119 +1095,185 @@ const mockSalesData: SalesData[] = [
 
 // Получение статистики продавца
 export async function getSellerStats(): Promise<SellerStats> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  const response = await authenticatedFetch('/vpn/seller/stats', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении статистики продавца');
+  }
+
+  const data = await response.json();
   
-  const stats: SellerStats = {
-    totalServers: mockSellerServers.length,
-    activeServers: mockSellerServers.filter(s => s.isActive).length,
-    totalSubscribers: mockSellerServers.reduce((sum, s) => sum + s.totalSubscribers, 0),
-    activeSubscribers: mockSellerServers.reduce((sum, s) => sum + s.activeSubscribers, 0),
-    totalRevenue: mockSellerServers.reduce((sum, s) => sum + s.totalRevenue, 0),
-    monthlyRevenue: mockSellerServers.reduce((sum, s) => sum + s.monthlyRevenue, 0),
-    averageRating: 4.7,
-    totalReviews: 127,
-    conversionRate: 23.5,
-    churnRate: 8.2
+  // Преобразуем BigDecimal значения в number для фронтенда
+  return {
+    ...data,
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0),
+    averageRating: Number(data.averageRating || 0),
+    conversionRate: Number(data.conversionRate || 0),
+    churnRate: Number(data.churnRate || 0)
   };
-  
-  return stats;
 }
 
 // Получение списка серверов продавца
 export async function getSellerServers(): Promise<SellerServer[]> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return [...mockSellerServers];
+  const response = await authenticatedFetch('/vpn/seller/servers', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении списка серверов');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return data.map((server: any) => ({
+    ...server,
+    totalRevenue: Number(server.totalRevenue || 0),
+    monthlyRevenue: Number(server.monthlyRevenue || 0),
+    uptime: Number(server.uptime || 0)
+  }));
 }
 
 // Получение подписчиков продавца
 export async function getSellerSubscribers(): Promise<SellerSubscriber[]> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return [...mockSellerSubscribers];
+  const response = await authenticatedFetch('/vpn/seller/subscribers', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении списка подписчиков');
+  }
+
+  const data = await response.json();
+  
+  // Преобразуем данные для совместимости с фронтендом
+  return data.map((subscriber: any) => ({
+    ...subscriber,
+    totalPaid: Number(subscriber.totalPaid || 0)
+  }));
 }
 
 // Получение данных о продажах за период
 export async function getSalesData(days: number = 30): Promise<SalesData[]> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  const response = await authenticatedFetch(`/vpn/seller/sales?days=${days}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении данных о продажах');
+  }
+
+  const data = await response.json();
   
-  // Возвращаем только нужное количество дней, но не больше чем есть в данных
-  const requestedDays = Math.min(days, mockSalesData.length);
-  return mockSalesData.slice(-requestedDays);
+  // Преобразуем данные для совместимости с фронтендом
+  return data.map((record: any) => ({
+    ...record,
+    revenue: Number(record.revenue || 0)
+  }));
 }
 
 // Создание нового сервера
 export async function createServer(serverData: CreateServerForm): Promise<SellerServer> {
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-  
-  const newServer: SellerServer = {
-    id: (mockSellerServers.length + 1).toString(),
-    ...serverData,
-    flag: getFlagByCountryCode(serverData.countryCode),
-    ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-    port: 51820,
-    currentConnections: 0,
-    ping: Math.floor(Math.random() * 30) + 5,
-    uptime: 100,
-    isOnline: false,
-    isActive: false,
-    createdAt: new Date().toISOString().split('T')[0],
-    totalSubscribers: 0,
-    activeSubscribers: 0,
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    status: 'setup',
-    protocols: ['WireGuard', 'OpenVPN']
+  const response = await authenticatedFetch('/vpn/seller/servers', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(serverData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при создании сервера');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return {
+    ...data,
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0),
+    uptime: Number(data.uptime || 0),
+    flag: getFlagByCountryCode(data.countryCode)
   };
-  
-  mockSellerServers.push(newServer);
-  console.log('Создан новый сервер:', newServer);
-  
-  return newServer;
 }
 
 // Обновление сервера
 export async function updateServer(serverId: string, updates: Partial<SellerServer>): Promise<SellerServer> {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  
-  const serverIndex = mockSellerServers.findIndex(s => s.id === serverId);
-  if (serverIndex === -1) {
-    throw new Error('Сервер не найден');
+  // Преобразуем updates в формат CreateServerRequest
+  const updateData = {
+    name: updates.name,
+    country: updates.country,
+    countryCode: updates.countryCode,
+    city: updates.city,
+    maxConnections: updates.maxConnections,
+    bandwidth: updates.bandwidth,
+    speed: updates.speed,
+    description: updates.description,
+    features: updates.features
+  };
+
+  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при обновлении сервера');
   }
-  
-  mockSellerServers[serverIndex] = { ...mockSellerServers[serverIndex], ...updates };
-  console.log('Сервер обновлен:', mockSellerServers[serverIndex]);
-  
-  return mockSellerServers[serverIndex];
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return {
+    ...data,
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0),
+    uptime: Number(data.uptime || 0),
+    flag: getFlagByCountryCode(data.countryCode)
+  };
 }
 
 // Удаление сервера
 export async function deleteServer(serverId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  
-  const serverIndex = mockSellerServers.findIndex(s => s.id === serverId);
-  if (serverIndex === -1) {
-    throw new Error('Сервер не найден');
+  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при удалении сервера');
   }
-  
-  mockSellerServers.splice(serverIndex, 1);
-  console.log('Сервер удален:', serverId);
 }
 
 // Переключение статуса сервера
 export async function toggleServerStatus(serverId: string): Promise<SellerServer> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  const server = mockSellerServers.find(s => s.id === serverId);
-  if (!server) {
-    throw new Error('Сервер не найден');
+  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}/toggle`, {
+    method: 'PATCH',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при изменении статуса сервера');
   }
-  
-  server.isActive = !server.isActive;
-  server.isOnline = server.isActive;
-  server.status = server.isActive ? 'active' : 'inactive';
-  
-  console.log(`Статус сервера ${server.name} изменен на: ${server.status}`);
-  
-  return server;
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return {
+    ...data,
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0),
+    uptime: Number(data.uptime || 0)
+  };
 }
 
 // Вспомогательная функция для получения флага по коду страны
@@ -1195,49 +1290,35 @@ function getFlagByCountryCode(countryCode: string): string {
 
 // API функции для создания сервера
 
-// Шаг 1: Проверка подключения к серверу
+// Проверка подключения к серверу
 export async function checkServerConnection(connectionData: ServerConnectionData): Promise<ServerConnectionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  
-  // Мок-логика проверки
-  const isValidIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(connectionData.ip);
-  const hasPassword = connectionData.rootPassword.length >= 6;
-  
-  if (!isValidIP) {
-    return {
-      success: false,
-      error: 'Неверный формат IP-адреса'
-    };
-  }
-  
-  if (!hasPassword) {
-    return {
-      success: false,
-      error: 'Пароль должен содержать минимум 6 символов'
-    };
-  }
-  
-  // Моки всегда успешны для демонстрации
-  // if (Math.random() < 0.2) {
-  //   return {
-  //     success: false,
-  //     error: 'Не удается подключиться к серверу. Проверьте IP-адрес и пароль.'
-  //   };
-  // }
-  
-  // Успешное подключение
-  const regions = ['Frankfurt', 'New York', 'London', 'Singapore', 'Toronto'];
-  const providers = ['DigitalOcean', 'AWS', 'Linode', 'Vultr', 'Hetzner'];
-  
-  return {
-    success: true,
-    serverInfo: {
-      ip: connectionData.ip,
-      os: 'Ubuntu 22.04 LTS',
-      region: regions[Math.floor(Math.random() * regions.length)],
-      provider: providers[Math.floor(Math.random() * providers.length)]
+  try {
+    const response = await authenticatedFetch('/vpn/seller/servers/test-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ip: connectionData.ip,
+        rootPassword: connectionData.rootPassword
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Ошибка при проверке подключения к серверу');
     }
-  };
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('❌ Ошибка при проверке подключения к серверу:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Неизвестная ошибка при подключении'
+    };
+  }
 }
 
 // Шаг 2: Развертывание WireGuard (с обновлениями в реальном времени)
@@ -1326,13 +1407,28 @@ export async function deployWireGuardWithProgress(
        // }
      }
      
-     await new Promise(resolve => setTimeout(resolve, 500));
-     result.steps[i].status = 'completed';
-     result.steps[i].details = stepDetails[stepId as keyof typeof stepDetails].finalDetails;
-     onProgress({ ...result }); // Обновляем UI при завершении шага
-   }
+         await new Promise(resolve => setTimeout(resolve, 500));
+    result.steps[i].status = 'completed';
+    result.steps[i].details = stepDetails[stepId as keyof typeof stepDetails].finalDetails;
+    onProgress({ ...result }); // Обновляем UI при завершении шага
+  }
   
-  return result;
+  // После успешной имитации, вызываем реальное API для развертывания
+  try {
+    const realResult = await deployWireGuard(serverIp);
+    if (realResult.success) {
+      return result; // Возвращаем результат имитации с успехом
+    } else {
+      // Если реальное API вернуло ошибку, обновляем результат
+      result.success = false;
+      result.error = realResult.error;
+      return result;
+    }
+  } catch (error) {
+    result.success = false;
+    result.error = error instanceof Error ? error.message : 'Ошибка при развертывании WireGuard';
+    return result;
+  }
 }
 
 // Шаг 3: Тестирование сервера (с обновлениями в реальном времени)
@@ -1436,58 +1532,91 @@ export async function testServerReadinessWithProgress(
     result.overallStatus = 'passed';
   }
   
-  return result;
+  // После успешной имитации, вызываем реальное API для тестирования
+  try {
+    const realResult = await testServerReadiness(serverIp);
+    if (realResult.success) {
+      return result; // Возвращаем результат имитации с успехом
+    } else {
+      // Если реальное API вернуло ошибку, обновляем результат
+      result.success = false;
+      result.overallStatus = 'failed';
+      return result;
+    }
+  } catch (error) {
+    result.success = false;
+    result.overallStatus = 'failed';
+    return result;
+  }
 }
 
-// Обратная совместимость
+// Развертывание WireGuard на сервере
 export async function deployWireGuard(serverIp: string): Promise<WireGuardDeploymentResult> {
-  return deployWireGuardWithProgress(serverIp, () => {});
+  try {
+    const response = await authenticatedFetch(`/vpn/seller/servers/deploy-wireguard?serverIp=${encodeURIComponent(serverIp)}`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Ошибка при развертывании WireGuard');
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('❌ Ошибка при развертывании WireGuard:', error);
+    return {
+      success: false,
+      steps: [],
+      error: error instanceof Error ? error.message : 'Неизвестная ошибка при развертывании'
+    };
+  }
 }
 
+// Тестирование готовности сервера
 export async function testServerReadiness(serverIp: string): Promise<ServerTestingResult> {
-  return testServerReadinessWithProgress(serverIp, () => {});
+  try {
+    const response = await authenticatedFetch(`/vpn/seller/servers/test-readiness?serverIp=${encodeURIComponent(serverIp)}`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Ошибка при тестировании сервера');
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('❌ Ошибка при тестировании сервера:', error);
+    return {
+      success: false,
+      tests: [],
+      overallStatus: 'failed'
+    };
+  }
 }
 
-// Шаг 4: Создание VPN-сервиса
+// Создание VPN-сервиса (вызывает реальное API создания сервера)
 export async function createVpnService(config: VpnServiceConfig, serverIp: string): Promise<SellerServer> {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  
-  const newServer: SellerServer = {
-    id: Date.now().toString(),
+  // Преобразуем VpnServiceConfig в CreateServerForm для API
+  const serverData = {
     name: config.name,
     country: config.country,
     countryCode: config.countryCode,
-    flag: getFlagByCountryCode(config.countryCode),
     city: config.city,
-    ip: serverIp,
-    port: 51820,
-    plan: config.plan,
-    monthlyPrice: config.monthlyPrice,
-    yearlyPrice: config.yearlyPrice,
     maxConnections: config.maxConnections,
-    currentConnections: 0,
     bandwidth: config.bandwidth,
     speed: config.speed,
-    ping: Math.floor(Math.random() * 30) + 5,
-    uptime: 100,
-    isOnline: true,
-    isActive: true,
-    createdAt: new Date().toISOString().split('T')[0],
-    totalSubscribers: 0,
-    activeSubscribers: 0,
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    status: 'active',
-    features: config.features,
-    protocols: config.protocols,
-    description: config.description
+    description: config.description || '',
+    features: config.features || []
   };
-  
-  // Добавляем в мок-массив серверов
-  mockSellerServers.push(newServer);
-  console.log('Создан новый VPN-сервис:', newServer);
-  
-  return newServer;
+
+  // Вызываем реальное API для создания сервера
+  return await createServer(serverData);
 }
 
 // Вспомогательные функции для тестирования
@@ -1525,4 +1654,197 @@ export async function becomeSeller(request: BecomeSellerRequest): Promise<UserPr
     console.error('❌ Ошибка получения роли продавца:', error);
     throw error;
   }
+}
+
+// ==================== ПЛАНЫ ПОДПИСКИ ====================
+
+// Получение всех планов продавца
+export async function getSellerPlans(): Promise<SubscriptionPlan[]> {
+  const response = await authenticatedFetch('/vpn/seller/plans', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении планов подписки');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return data.map((plan: any) => ({
+    ...plan,
+    monthlyPrice: Number(plan.monthlyPrice || 0),
+    yearlyPrice: Number(plan.yearlyPrice || 0),
+    totalRevenue: Number(plan.totalRevenue || 0),
+    monthlyRevenue: Number(plan.monthlyRevenue || 0)
+  }));
+}
+
+// Получение планов для конкретного сервера
+export async function getServerPlans(serverId: string): Promise<SubscriptionPlan[]> {
+  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}/plans`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении планов сервера');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return data.map((plan: any) => ({
+    ...plan,
+    monthlyPrice: Number(plan.monthlyPrice || 0),
+    yearlyPrice: Number(plan.yearlyPrice || 0),
+    totalRevenue: Number(plan.totalRevenue || 0),
+    monthlyRevenue: Number(plan.monthlyRevenue || 0)
+  }));
+}
+
+// Создание нового плана подписки
+export async function createSubscriptionPlan(serverId: string, planData: CreateSubscriptionPlanForm): Promise<SubscriptionPlan> {
+  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}/plans`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(planData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при создании плана');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return {
+    ...data,
+    monthlyPrice: Number(data.monthlyPrice || 0),
+    yearlyPrice: Number(data.yearlyPrice || 0),
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0)
+  };
+}
+
+// Обновление плана подписки
+export async function updateSubscriptionPlan(planId: string, planData: CreateSubscriptionPlanForm): Promise<SubscriptionPlan> {
+  const response = await authenticatedFetch(`/vpn/seller/plans/${planId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(planData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при обновлении плана');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return {
+    ...data,
+    monthlyPrice: Number(data.monthlyPrice || 0),
+    yearlyPrice: Number(data.yearlyPrice || 0),
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0)
+  };
+}
+
+// Переключение статуса плана
+export async function togglePlanStatus(planId: string): Promise<SubscriptionPlan> {
+  const response = await authenticatedFetch(`/vpn/seller/plans/${planId}/toggle`, {
+    method: 'PATCH',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при изменении статуса плана');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные для совместимости с фронтендом
+  return {
+    ...data,
+    monthlyPrice: Number(data.monthlyPrice || 0),
+    yearlyPrice: Number(data.yearlyPrice || 0),
+    totalRevenue: Number(data.totalRevenue || 0),
+    monthlyRevenue: Number(data.monthlyRevenue || 0)
+  };
+}
+
+// Удаление плана подписки
+export async function deleteSubscriptionPlan(planId: string): Promise<void> {
+  const response = await authenticatedFetch(`/vpn/seller/plans/${planId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Ошибка при удалении плана');
+  }
+}
+
+// Получение планов для маркетплейса
+export async function getMarketplacePlans(): Promise<VpnOffer[]> {
+  const response = await authenticatedFetch('/vpn/marketplace/plans', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error('Ошибка при получении планов маркетплейса');
+  }
+
+  const data = await response.json();
+
+  // Преобразуем данные планов в формат VpnOffer для совместимости
+  return data.map((plan: any) => ({
+    // Данные плана
+    planId: plan.id,
+    planName: plan.name,
+    planType: plan.type,
+    monthlyPrice: Number(plan.monthlyPrice || 0),
+    yearlyPrice: Number(plan.yearlyPrice || 0),
+    maxConnections: plan.maxConnections,
+    bandwidthLimit: plan.bandwidthLimit,
+    speedLimit: plan.speedLimit,
+    features: plan.features || [],
+    isPopular: plan.isPopular,
+    description: plan.description,
+    
+    // Данные сервера
+    serverId: plan.serverId,
+    serverName: plan.serverName,
+    country: plan.serverCountry,
+    countryCode: plan.serverCountryCode || 'US',
+    flag: plan.serverFlag,
+    city: plan.serverCity,
+    ping: 15, // Заглушка, в реальности будет приходить с сервера
+    uptime: 99.9, // Заглушка
+    isOnline: true, // Заглушка
+    bandwidth: plan.bandwidthLimit || 'Безлимит',
+    speed: plan.speedLimit || '1 Гбит/с',
+    protocols: ['WireGuard', 'OpenVPN'], // Заглушка
+    
+    // Статистика
+    totalSubscribers: plan.totalSubscribers || 0,
+    activeSubscribers: plan.activeSubscribers || 0,
+    rating: 4.5, // Заглушка для рейтинга
+    reviewsCount: plan.totalSubscribers || 0,
+    sellerName: 'VPN Seller', // Заглушка
+    
+    // Совместимость со старым интерфейсом
+    id: plan.id,
+    name: plan.name,
+    server: plan.serverName,
+    plan: plan.type,
+    simultaneousConnections: plan.maxConnections,
+    logPolicy: 'no-logs' as const
+  }));
 } 

@@ -8,7 +8,8 @@ import {
   checkServerConnection,
   deployWireGuardWithProgress,
   testServerReadinessWithProgress,
-  createVpnService
+  createVpnService,
+  createServer
 } from '../services/api';
 import type { 
   CreateServerState,
@@ -43,9 +44,6 @@ const CreateServer: React.FC = () => {
     country: '',
     countryCode: '',
     city: '',
-    plan: 'basic',
-    monthlyPrice: 5,
-    yearlyPrice: 50,
     maxConnections: 10,
     bandwidth: '1 ТБ',
     speed: '1 Гбит/с',
@@ -809,20 +807,7 @@ const CreateServer: React.FC = () => {
                    />
                  </div>
 
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     План
-                   </label>
-                   <select
-                     value={serviceForm.plan}
-                     onChange={(e) => setServiceForm(prev => ({ ...prev, plan: e.target.value as 'basic' | 'premium' | 'enterprise' }))}
-                     className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                   >
-                     <option value="basic">Basic</option>
-                     <option value="premium">Premium</option>
-                     <option value="enterprise">Enterprise</option>
-                   </select>
-                 </div>
+
                </div>
 
                {/* Локация */}
@@ -868,36 +853,8 @@ const CreateServer: React.FC = () => {
                  </div>
                </div>
 
-               {/* Тарифы */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     Цена за месяц (USD)
-                   </label>
-                   <input
-                     type="number"
-                     value={serviceForm.monthlyPrice}
-                     onChange={(e) => setServiceForm(prev => ({ ...prev, monthlyPrice: parseFloat(e.target.value) || 0 }))}
-                     min="1"
-                     max="100"
-                     className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                   />
-                 </div>
-
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     Цена за год (USD)
-                   </label>
-                   <input
-                     type="number"
-                     value={serviceForm.yearlyPrice}
-                     onChange={(e) => setServiceForm(prev => ({ ...prev, yearlyPrice: parseFloat(e.target.value) || 0 }))}
-                     min="10"
-                     max="1000"
-                     className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                   />
-                 </div>
-
+               {/* Технические характеристики */}
+               <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                  <div>
                    <label className="block text-sm font-medium text-gray-700 mb-2">
                      Макс. подключений
@@ -992,12 +949,24 @@ const CreateServer: React.FC = () => {
                  {state.isProcessing ? (
                    <div className="flex items-center justify-center">
                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                     Создание сервиса...
+                     Создание сервера...
                    </div>
                  ) : (
-                   'Сохранить и активировать'
+                   'Создать сервер'
                  )}
                </button>
+               
+               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
+                 <div className="flex items-start">
+                   <span className="text-blue-500 text-lg mr-3 mt-0.5">💡</span>
+                   <div>
+                     <h4 className="text-sm font-medium text-blue-900 mb-1">Следующий шаг</h4>
+                     <p className="text-xs text-blue-700">
+                       После создания сервера вы сможете создать для него планы подписки с разными ценами и ограничениями.
+                     </p>
+                   </div>
+                 </div>
+               </div>
              </div>
            </div>
          )}

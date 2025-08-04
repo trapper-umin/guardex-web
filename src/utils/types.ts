@@ -113,29 +113,49 @@ export interface Notification {
   timestamp: Date;
 }
 
-// Типы для маркетплейса VPN
+// Типы для маркетплейса VPN - обновлены для работы с планами
 export interface VpnOffer {
-  id: string;
-  name: string;
+  // Данные плана
+  planId: string;
+  planName: string;
+  planType: 'basic' | 'premium' | 'enterprise';
+  monthlyPrice: number;
+  yearlyPrice: number;
+  maxConnections: number;
+  bandwidthLimit?: string;
+  speedLimit?: string;
+  features: string[];
+  isPopular: boolean;
+  description: string;
+  
+  // Данные сервера
+  serverId: string;
+  serverName: string;
   country: string;
   countryCode: string;
   flag: string;
-  server: string;
-  plan: 'basic' | 'premium' | 'enterprise';
-  speed: string;
+  city: string;
   ping: number;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  features: string[];
-  rating: number;
-  reviewsCount: number;
-  sellerName: string;
   uptime: number;
   isOnline: boolean;
   bandwidth: string;
+  speed: string;
   protocols: string[];
-  logPolicy: 'no-logs' | 'minimal-logs';
+  
+  // Статистика
+  totalSubscribers: number;
+  activeSubscribers: number;
+  rating: number;
+  reviewsCount: number;
+  sellerName: string;
+  
+  // Совместимость
+  id: string;
+  name: string;
+  server: string;
+  plan: 'basic' | 'premium' | 'enterprise';
   simultaneousConnections: number;
+  logPolicy: 'no-logs' | 'minimal-logs';
 }
 
 // Типы для продавца VPN
@@ -146,28 +166,28 @@ export interface SellerServer {
   countryCode: string;
   flag: string;
   city: string;
-  ip: string;
-  port: number;
-  plan: 'basic' | 'premium' | 'enterprise';
-  monthlyPrice: number;
-  yearlyPrice: number;
+  ip?: string;
+  port?: number;
+  plan?: 'basic' | 'premium' | 'enterprise';
+  monthlyPrice?: number;
+  yearlyPrice?: number;
   maxConnections: number;
-  currentConnections: number;
+  currentConnections?: number;
   bandwidth: string;
   speed: string;
-  ping: number;
+  ping?: number;
   uptime: number;
-  isOnline: boolean;
+  isOnline?: boolean;
   isActive: boolean;
   createdAt: string;
-  totalSubscribers: number;
-  activeSubscribers: number;
+  totalSubscribers?: number;
+  activeSubscribers?: number;
   totalRevenue: number;
   monthlyRevenue: number;
-  status: 'active' | 'inactive' | 'maintenance' | 'setup';
-  features: string[];
-  protocols: string[];
-  description: string;
+  status?: string;
+  features?: string[];
+  protocols?: string[];
+  description?: string;
 }
 
 export interface SellerStats {
@@ -186,9 +206,11 @@ export interface SellerStats {
 export interface SellerSubscriber {
   id: string;
   email: string;
+  planId: string;
+  planName: string;
   serverId: string;
   serverName: string;
-  plan: 'monthly' | 'yearly';
+  billingCycle: string; // 'monthly' | 'yearly' but can be flexible
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -219,14 +241,51 @@ export interface CreateServerForm {
   country: string;
   countryCode: string;
   city: string;
-  plan: 'basic' | 'premium' | 'enterprise';
-  monthlyPrice: number;
-  yearlyPrice: number;
   maxConnections: number;
   bandwidth: string;
   speed: string;
   description: string;
   features: string[];
+}
+
+export interface CreateSubscriptionPlanForm {
+  name: string;
+  type: 'basic' | 'premium' | 'enterprise';
+  monthlyPrice: number;
+  yearlyPrice: number;
+  maxConnections: number;
+  bandwidthLimit: string;
+  speedLimit: string;
+  isPopular: boolean;
+  sortOrder: number;
+  features: string[];
+  description: string;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  serverId: string;
+  serverName: string;
+  serverCountry: string;
+  serverCity: string;
+  serverFlag: string;
+  type: 'basic' | 'premium' | 'enterprise';
+  monthlyPrice: number;
+  yearlyPrice: number;
+  maxConnections: number;
+  bandwidthLimit?: string;
+  speedLimit?: string;
+  isActive: boolean;
+  isPopular: boolean;
+  sortOrder: number;
+  features: string[];
+  description: string;
+  totalSubscribers: number;
+  activeSubscribers: number;
+  totalRevenue: number;
+  monthlyRevenue: number;
+  createdAt: string;
 }
 
 // Типы для процесса создания сервера
@@ -281,9 +340,6 @@ export interface VpnServiceConfig {
   country: string;
   countryCode: string;
   city: string;
-  plan: 'basic' | 'premium' | 'enterprise';
-  monthlyPrice: number;
-  yearlyPrice: number;
   maxConnections: number;
   bandwidth: string;
   speed: string;

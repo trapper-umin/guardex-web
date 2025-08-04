@@ -10,9 +10,13 @@ import {
   getSellerSubscribers,
   getSalesData,
   toggleServerStatus,
-  deleteServer
+  deleteServer,
+  getSellerPlans,
+  togglePlanStatus,
+  deleteSubscriptionPlan,
+  createSubscriptionPlan
 } from '../services/api';
-import type { SellerServer, SellerStats, SellerSubscriber, SalesData } from '../utils/types';
+import type { SellerServer, SellerStats, SellerSubscriber, SalesData, SubscriptionPlan, CreateSubscriptionPlanForm } from '../utils/types';
 
 const SellerDashboard: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -21,17 +25,23 @@ const SellerDashboard: React.FC = () => {
   // Основные состояния
   const [stats, setStats] = useState<SellerStats | null>(null);
   const [servers, setServers] = useState<SellerServer[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscribers, setSubscribers] = useState<SellerSubscriber[]>([]);
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'servers' | 'subscribers' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'servers' | 'plans' | 'subscribers' | 'analytics'>('overview');
 
   // Состояния для серверов
-  const [editingServer, setEditingServer] = useState<string | null>(null);
   const [serverFilter, setServerFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [serverSortBy, setServerSortBy] = useState<'name' | 'country' | 'plan' | 'revenue'>('revenue');
   const [currentServerPage, setCurrentServerPage] = useState(1);
   const [serversPerPage] = useState(6);
+
+  // Состояния для планов
+  const [planFilter, setPlanFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [planSortBy, setPlanSortBy] = useState<'name' | 'server' | 'type' | 'revenue'>('revenue');
+  const [currentPlanPage, setCurrentPlanPage] = useState(1);
+  const [plansPerPage] = useState(8);
 
   // Состояния для подписчиков  
   const [subscriberFilter, setSubscriberFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -41,6 +51,9 @@ const SellerDashboard: React.FC = () => {
 
   // Состояние для тултипов графика
   const [hoveredDay, setHoveredDay] = useState<SalesData | null>(null);
+
+  // Состояние для модального окна создания плана
+  const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
 
   // Проверка авторизации
   useEffect(() => {
@@ -59,15 +72,17 @@ const SellerDashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [statsData, serversData, subscribersData, salesDataResult] = await Promise.all([
+      const [statsData, serversData, plansData, subscribersData, salesDataResult] = await Promise.all([
         getSellerStats(),
         getSellerServers(),
+        getSellerPlans(),
         getSellerSubscribers(),
         getSalesData(14) // Загружаем данные за 14 дней
       ]);
       
       setStats(statsData);
       setServers(serversData);
+      setPlans(plansData);
       setSubscribers(subscribersData);
       setSalesData(salesDataResult);
     } catch (error) {
@@ -102,6 +117,30 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
+  const handleTogglePlanStatus = async (planId: string) => {
+    try {
+      const updatedPlan = await togglePlanStatus(planId);
+      setPlans(prev => prev.map(p => p.id === planId ? updatedPlan : p));
+      notifications.general.success('Статус плана изменен');
+    } catch (error) {
+      console.error('Ошибка изменения статуса плана:', error);
+      notifications.general.loadingError();
+    }
+  };
+
+  const handleDeletePlan = async (planId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить этот план? Это действие нельзя отменить.')) return;
+    
+    try {
+      await deleteSubscriptionPlan(planId);
+      setPlans(prev => prev.filter(p => p.id !== planId));
+      notifications.general.success('План удален');
+    } catch (error) {
+      console.error('Ошибка удаления плана:', error);
+      notifications.general.loadingError();
+    }
+  };
+
   // Фильтрация и сортировка серверов
   const getFilteredAndSortedServers = () => {
     let filtered = [...servers];
@@ -119,7 +158,35 @@ const SellerDashboard: React.FC = () => {
         case 'country':
           return a.country.localeCompare(b.country);
         case 'plan':
-          return a.plan.localeCompare(b.plan);
+          return (a.plan || '').localeCompare(b.plan || '');
+        case 'revenue':
+          return b.monthlyRevenue - a.monthlyRevenue;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  };
+
+  // Фильтрация и сортировка планов
+  const getFilteredAndSortedPlans = () => {
+    let filtered = [...plans];
+
+    if (planFilter === 'active') {
+      filtered = filtered.filter(plan => plan.isActive);
+    } else if (planFilter === 'inactive') {
+      filtered = filtered.filter(plan => !plan.isActive);
+    }
+
+    filtered.sort((a, b) => {
+      switch (planSortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'server':
+          return a.serverName.localeCompare(b.serverName);
+        case 'type':
+          return a.type.localeCompare(b.type);
         case 'revenue':
           return b.monthlyRevenue - a.monthlyRevenue;
         default:
@@ -164,6 +231,12 @@ const SellerDashboard: React.FC = () => {
   const startServerIndex = (currentServerPage - 1) * serversPerPage;
   const currentServers = filteredServers.slice(startServerIndex, startServerIndex + serversPerPage);
 
+  // Пагинация планов
+  const filteredPlans = getFilteredAndSortedPlans();
+  const totalPlanPages = Math.ceil(filteredPlans.length / plansPerPage);
+  const startPlanIndex = (currentPlanPage - 1) * plansPerPage;
+  const currentPlans = filteredPlans.slice(startPlanIndex, startPlanIndex + plansPerPage);
+
   // Пагинация подписчиков
   const filteredSubscribers = getFilteredAndSortedSubscribers();
   const totalSubscriberPages = Math.ceil(filteredSubscribers.length / subscribersPerPage);
@@ -194,6 +267,7 @@ const SellerDashboard: React.FC = () => {
               {[
                 { id: 'overview', name: 'Обзор', icon: '📊' },
                 { id: 'servers', name: 'Серверы', icon: '🖥️' },
+                { id: 'plans', name: 'Планы', icon: '💰' },
                 { id: 'subscribers', name: 'Подписчики', icon: '👥' },
                 { id: 'analytics', name: 'Аналитика', icon: '📈' }
               ].map((tab) => (
@@ -202,6 +276,7 @@ const SellerDashboard: React.FC = () => {
                   onClick={() => {
                     setActiveTab(tab.id as typeof activeTab);
                     setCurrentServerPage(1);
+                    setCurrentPlanPage(1);
                     setCurrentSubscriberPage(1);
                   }}
                   className={`relative min-w-0 flex-1 sm:flex-none sm:px-8 px-4 py-3 sm:py-4 text-center border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
@@ -271,15 +346,15 @@ const SellerDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                                                 <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
                         <div className="flex items-center">
                           <div className="w-8 h-8 sm:w-12 sm:h-12 bg-orange-600 rounded-lg sm:rounded-xl flex items-center justify-center mr-2 sm:mr-4">
-                            <span className="text-white text-sm sm:text-xl">⭐</span>
+                            <span className="text-white text-sm sm:text-xl">💰</span>
                           </div>
                           <div>
-                            <p className="text-xs sm:text-sm text-orange-600">Рейтинг</p>
-                            <p className="text-lg sm:text-2xl font-bold text-orange-900">{stats?.averageRating || 0}</p>
-                            <p className="text-xs text-orange-700 hidden sm:block">{stats?.totalReviews || 0} отзывов</p>
+                            <p className="text-xs sm:text-sm text-orange-600">Планы</p>
+                            <p className="text-lg sm:text-2xl font-bold text-orange-900">{plans?.length || 0}</p>
+                            <p className="text-xs text-orange-700 hidden sm:block">{plans?.filter(p => p.isActive).length || 0} активных</p>
                           </div>
                         </div>
                       </div>
@@ -296,16 +371,16 @@ const SellerDashboard: React.FC = () => {
                           ➕ Добавить сервер
                         </button>
                         <button
-                          onClick={() => setActiveTab('analytics')}
+                          onClick={() => setActiveTab('plans')}
                           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
                         >
-                          📊 Посмотреть аналитику
+                          💰 Управление планами
                         </button>
                         <button
-                          onClick={() => setActiveTab('subscribers')}
+                          onClick={() => setActiveTab('analytics')}
                           className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
                         >
-                          👥 Управление подписчиками
+                          📊 Посмотреть аналитику
                         </button>
                       </div>
                     </div>
@@ -470,6 +545,173 @@ const SellerDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {/* Планы */}
+                {activeTab === 'plans' && (
+                  <div className="space-y-4 sm:space-y-6">
+                    {/* Фильтры и сортировка - адаптивные */}
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                        <select
+                          value={planFilter}
+                          onChange={(e) => {
+                            setPlanFilter(e.target.value as typeof planFilter);
+                            setCurrentPlanPage(1);
+                          }}
+                          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="all">Все статусы</option>
+                          <option value="active">Активные</option>
+                          <option value="inactive">Неактивные</option>
+                        </select>
+
+                        <select
+                          value={planSortBy}
+                          onChange={(e) => setPlanSortBy(e.target.value as typeof planSortBy)}
+                          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="revenue">По доходу</option>
+                          <option value="name">По названию</option>
+                          <option value="server">По серверу</option>
+                          <option value="type">По типу</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={() => setShowCreatePlanModal(true)}
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                      >
+                        ➕ Добавить план
+                      </button>
+                    </div>
+
+                    {/* Информация о результатах */}
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                      <div>
+                        Показано {startPlanIndex + 1}-{Math.min(startPlanIndex + plansPerPage, filteredPlans.length)} из {filteredPlans.length} планов
+                      </div>
+                      <div className="hidden sm:block">
+                        Страница {currentPlanPage} из {totalPlanPages}
+                      </div>
+                    </div>
+
+                    {/* Список планов - адаптивный */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                      {currentPlans.map((plan) => (
+                        <div key={plan.id} className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
+                          <div className="flex items-center justify-between mb-3 sm:mb-4">
+                            <div className="flex items-center">
+                              <span className="text-xl sm:text-2xl mr-2 sm:mr-3">{plan.serverFlag}</span>
+                              <div>
+                                <h4 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">{plan.name}</h4>
+                                <p className="text-xs sm:text-sm text-gray-600">{plan.serverName}</p>
+                              </div>
+                            </div>
+                            <div className={`w-3 h-3 rounded-full ${plan.isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                          </div>
+
+                          <div className="space-y-2 sm:space-y-3 mb-4">
+                            <div className="flex justify-between text-xs sm:text-sm">
+                              <span className="text-gray-600">Тип:</span>
+                              <span className={`font-medium px-2 py-1 rounded text-xs ${
+                                plan.type === 'enterprise' ? 'bg-purple-100 text-purple-800' :
+                                plan.type === 'premium' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {plan.type === 'enterprise' ? 'Enterprise' : plan.type === 'premium' ? 'Premium' : 'Basic'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-xs sm:text-sm">
+                              <span className="text-gray-600">Цены:</span>
+                              <span className="text-gray-900 font-medium">${plan.monthlyPrice}/мес, ${plan.yearlyPrice}/год</span>
+                            </div>
+                            <div className="flex justify-between text-xs sm:text-sm">
+                              <span className="text-gray-600">Подключения:</span>
+                              <span className="text-gray-900 font-medium">{plan.maxConnections}</span>
+                            </div>
+                            <div className="flex justify-between text-xs sm:text-sm">
+                              <span className="text-gray-600">Подписчики:</span>
+                              <span className="text-blue-600 font-bold">{plan.activeSubscribers}/{plan.totalSubscribers}</span>
+                            </div>
+                            <div className="flex justify-between text-xs sm:text-sm">
+                              <span className="text-gray-600">Месячный доход:</span>
+                              <span className="text-green-600 font-bold">${plan.monthlyRevenue}</span>
+                            </div>
+                            {plan.isPopular && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-2 py-1">
+                                <span className="text-xs text-yellow-800 font-medium">⭐ Популярный</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              onClick={() => handleTogglePlanStatus(plan.id)}
+                              className={`flex-1 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 ${
+                                plan.isActive
+                                  ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800'
+                                  : 'bg-green-100 hover:bg-green-200 text-green-800'
+                              }`}
+                            >
+                              {plan.isActive ? 'Деактивировать' : 'Активировать'}
+                            </button>
+                            <button
+                              onClick={() => handleDeletePlan(plan.id)}
+                              className="flex-1 bg-red-100 hover:bg-red-200 text-red-800 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200"
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Пагинация планов */}
+                    {totalPlanPages > 1 && (
+                      <div className="flex justify-center items-center mt-6 sm:mt-8 space-x-2 sm:space-x-3">
+                        <button
+                          onClick={() => setCurrentPlanPage(Math.max(1, currentPlanPage - 1))}
+                          disabled={currentPlanPage === 1}
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                            currentPlanPage === 1
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
+                          }`}
+                        >
+                          <span className="hidden sm:inline">← </span>Назад
+                        </button>
+                        
+                        <div className="flex space-x-1 sm:space-x-2">
+                          {Array.from({ length: totalPlanPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPlanPage(page)}
+                              className={`px-2 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                                currentPlanPage === page
+                                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl hover:shadow-2xl hover:from-blue-700 hover:to-indigo-700'
+                                  : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+                        
+                        <button
+                          onClick={() => setCurrentPlanPage(Math.min(totalPlanPages, currentPlanPage + 1))}
+                          disabled={currentPlanPage === totalPlanPages}
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                            currentPlanPage === totalPlanPages
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
+                          }`}
+                        >
+                          Вперед<span className="hidden sm:inline"> →</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Подписчики */}
                 {activeTab === 'subscribers' && (
                   <div className="space-y-4 sm:space-y-6">
@@ -533,7 +775,7 @@ const SellerDashboard: React.FC = () => {
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div>
                                 <span className="text-gray-500">План: </span>
-                                <span className="text-gray-900">{subscriber.plan === 'monthly' ? 'Месячный' : 'Годовой'}</span>
+                                <span className="text-gray-900">{subscriber.planName}</span>
                               </div>
                               <div>
                                 <span className="text-gray-500">Оплачено: </span>
@@ -579,7 +821,7 @@ const SellerDashboard: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <span className="text-sm text-gray-900">
-                                    {subscriber.plan === 'monthly' ? 'Месячный' : 'Годовой'}
+                                    {subscriber.planName} ({subscriber.billingCycle === 'monthly' ? 'Месячный' : 'Годовой'})
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -660,8 +902,8 @@ const SellerDashboard: React.FC = () => {
                       {/* График - адаптивный */}
                       <div className="relative" style={{ height: '320px' }}>
                         <div className="absolute bottom-8 left-0 right-0 flex items-end justify-between space-x-1 sm:space-x-2 overflow-x-auto" style={{ height: '240px' }}>
-                          {salesData.length > 0 ? (
-                            salesData.map((day, index) => {
+                                                      {salesData.length > 0 ? (
+                            salesData.map((day) => {
                               const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1); // Минимум 1 чтобы избежать деления на 0
                               const heightPx = Math.max((day.revenue / maxRevenue) * 200, 8); // Высота в пикселях от 8px до 200px
                               
@@ -752,6 +994,299 @@ const SellerDashboard: React.FC = () => {
 
       <div className="mt-12 sm:mt-20">
         <Footer />
+      </div>
+
+      {/* Модальное окно создания плана */}
+      {showCreatePlanModal && (
+        <CreatePlanModal
+          servers={servers}
+          onClose={() => setShowCreatePlanModal(false)}
+          onSuccess={(newPlan) => {
+            setPlans(prev => [...prev, newPlan]);
+            setShowCreatePlanModal(false);
+            notifications.general.success('План успешно создан');
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Компонент модального окна для создания плана
+interface CreatePlanModalProps {
+  servers: SellerServer[];
+  onClose: () => void;
+  onSuccess: (plan: SubscriptionPlan) => void;
+}
+
+const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ servers, onClose, onSuccess }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<CreateSubscriptionPlanForm>({
+    name: '',
+    type: 'basic',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    maxConnections: 1,
+    bandwidthLimit: '',
+    speedLimit: '',
+    isPopular: false,
+    sortOrder: 0,
+    features: [],
+    description: ''
+  });
+  const [selectedServerId, setSelectedServerId] = useState<string>('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedServerId) {
+      notifications.general.loadingError();
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const newPlan = await createSubscriptionPlan(selectedServerId, formData);
+      onSuccess(newPlan);
+    } catch (error) {
+      console.error('Ошибка создания плана:', error);
+      notifications.general.loadingError();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFeatureToggle = (feature: string) => {
+    setFormData(prev => ({
+      ...prev,
+      features: prev.features.includes(feature)
+        ? prev.features.filter(f => f !== feature)
+        : [...prev.features, feature]
+    }));
+  };
+
+  const availableFeatures = [
+    'Безлимитный трафик',
+    'Netflix поддержка',
+    'Торрент разрешён',
+    'P2P оптимизация',
+    'DDoS защита',
+    'Высокая скорость',
+    'Без логов',
+    '24/7 поддержка'
+  ];
+
+  const activeServers = servers.filter(server => server.isActive);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Создать план подписки</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Выбор сервера */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Сервер *
+              </label>
+              <select
+                value={selectedServerId}
+                onChange={(e) => setSelectedServerId(e.target.value)}
+                required
+                className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Выберите сервер</option>
+                {activeServers.map(server => (
+                  <option key={server.id} value={server.id}>
+                    {server.flag} {server.name} ({server.city}, {server.country})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Название плана */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Название плана *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+                className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Например: Premium VPN"
+              />
+            </div>
+
+            {/* Тип плана */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Тип плана *
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="basic">Basic</option>
+                <option value="premium">Premium</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+            </div>
+
+            {/* Цены */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Месячная цена ($) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={formData.monthlyPrice}
+                  onChange={(e) => setFormData(prev => ({ ...prev, monthlyPrice: parseFloat(e.target.value) || 0 }))}
+                  required
+                  className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Годовая цена ($) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={formData.yearlyPrice}
+                  onChange={(e) => setFormData(prev => ({ ...prev, yearlyPrice: parseFloat(e.target.value) || 0 }))}
+                  required
+                  className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Максимальные подключения */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Максимальное количество подключений *
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={formData.maxConnections}
+                onChange={(e) => setFormData(prev => ({ ...prev, maxConnections: parseInt(e.target.value) || 1 }))}
+                required
+                className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Ограничения */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ограничение пропускной способности
+                </label>
+                <input
+                  type="text"
+                  value={formData.bandwidthLimit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, bandwidthLimit: e.target.value }))}
+                  className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Например: 1TB/мес"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ограничение скорости
+                </label>
+                <input
+                  type="text"
+                  value={formData.speedLimit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, speedLimit: e.target.value }))}
+                  className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Например: 100 Мбит/с"
+                />
+              </div>
+            </div>
+
+            {/* Особенности */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Особенности плана
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {availableFeatures.map(feature => (
+                  <label key={feature} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.features.includes(feature)}
+                      onChange={() => handleFeatureToggle(feature)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">{feature}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Описание */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Описание плана
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+                className="w-full px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Краткое описание плана..."
+              />
+            </div>
+
+            {/* Популярный план */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isPopular"
+                checked={formData.isPopular}
+                onChange={(e) => setFormData(prev => ({ ...prev, isPopular: e.target.checked }))}
+                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <label htmlFor="isPopular" className="ml-2 text-sm text-gray-700">
+                Отметить как популярный план
+              </label>
+            </div>
+
+            {/* Кнопки */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? 'Создание...' : 'Создать план'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
