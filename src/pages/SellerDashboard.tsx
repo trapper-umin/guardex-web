@@ -902,7 +902,7 @@ const SellerDashboard: React.FC = () => {
                     <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 relative">
                       {/* График - адаптивный */}
                       <div className="relative" style={{ height: '320px' }}>
-                        <div className="absolute bottom-8 left-0 right-0 flex items-end justify-between space-x-1 sm:space-x-2 overflow-x-auto" style={{ height: '240px' }}>
+                        <div className="absolute bottom-8 left-0 right-0 flex items-end justify-start space-x-1 sm:space-x-2 overflow-x-auto" style={{ height: '240px' }}>
                                                       {salesData.length > 0 ? (
                             salesData.map((day) => {
                               const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1); // Минимум 1 чтобы избежать деления на 0
@@ -911,7 +911,8 @@ const SellerDashboard: React.FC = () => {
                               return (
                                 <div
                                   key={day.date}
-                                  className="relative flex-1 flex flex-col items-center cursor-pointer"
+                                  className="relative flex flex-col items-center cursor-pointer"
+                                  style={{ width: '32px' }}
                                   onMouseEnter={(e) => {
                                     setHoveredDay(day);
                                     const rect = e.currentTarget.getBoundingClientRect();
