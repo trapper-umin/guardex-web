@@ -559,7 +559,7 @@ const CreateServer: React.FC = () => {
                                <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
                                <span className="text-gray-400 text-xs ml-2">Лог выполнения</span>
                              </div>
-                             <div className="text-green-400 space-y-1 max-h-32 overflow-y-auto">
+                             <div className="text-green-400 space-y-1 max-h-32 overflow-y-auto scrollbar-hide">
                                {step.logs.map((log, logIndex) => (
                                  <div key={logIndex} className="flex items-start">
                                    <span className="text-gray-500 mr-2 flex-shrink-0">
@@ -690,7 +690,7 @@ const CreateServer: React.FC = () => {
                                <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
                                <span className="text-gray-400 text-xs ml-2">Лог тестирования</span>
                              </div>
-                             <div className="text-cyan-400 space-y-1 max-h-32 overflow-y-auto">
+                             <div className="text-cyan-400 space-y-1 max-h-32 overflow-y-auto scrollbar-hide">
                                {test.logs.map((log, logIndex) => (
                                  <div key={logIndex} className="flex items-start">
                                    <span className="text-gray-500 mr-2 flex-shrink-0">

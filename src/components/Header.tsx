@@ -148,6 +148,17 @@ const Header: React.FC = () => {
                 >
                   Кабинет
                 </NavLink>
+
+                {/* Кнопка продавца - только для продавцов */}
+                {user?.role === 'SELLER' && (
+                  <NavLink
+                    to={ROUTES.SELLER_DASHBOARD}
+                    className={getNavLinkClass}
+                  >
+                    Продавец
+                  </NavLink>
+                )}
+
                 <NavLink
                   to={ROUTES.MARKETPLACE}
                   className={getNavLinkClass}
@@ -351,6 +362,17 @@ const Header: React.FC = () => {
                 >
                   Маркетплейс
                 </NavLink>
+
+                {/* Кнопка продавца - только для продавцов */}
+                {user?.role === 'SELLER' && (
+                  <NavLink
+                    to={ROUTES.SELLER_DASHBOARD}
+                    className={getMobileNavLinkClass}
+                    onClick={closeMobileMenu}
+                  >
+                    🏪 Панель продавца
+                  </NavLink>
+                )}
                 
                 {/* Группа настроек в мобильном меню */}
                 <div className="border-t border-gray-200 pt-2 mt-2">

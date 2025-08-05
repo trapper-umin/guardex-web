@@ -267,9 +267,9 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Основные секции */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-stretch">
           {/* Мои подписки */}
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-4 sm:p-8 hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-4 sm:p-8 hover:shadow-2xl transition-shadow duration-300 flex flex-col lg:min-h-[700px]">
             <div className="flex items-center mb-4 sm:mb-6">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -288,9 +288,9 @@ const Dashboard: React.FC = () => {
                 <span className="ml-3 text-gray-600">Загрузка подписок...</span>
               </div>
             ) : subscriptions.length > 0 ? (
-              <div>
+              <div className="flex flex-col h-full">
                 {/* Фильтры */}
-                <div className="mb-4 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                <div className="mb-4 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4 flex-shrink-0">
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     {/* Фильтр по статусу */}
                     <select
@@ -332,10 +332,11 @@ const Dashboard: React.FC = () => {
 
                 {/* Контейнер для прокрутки подписок */}
                 <div 
-                  className="max-h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
+                  className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
                   style={{
                     scrollbarWidth: 'thin',
-                    scrollbarColor: '#D1D5DB #F3F4F6'
+                    scrollbarColor: '#D1D5DB #F3F4F6',
+                    maxHeight: '500px' // Фиксированная высота для симметрии
                   }}
                 >
                   {getFilteredAndSortedSubscriptions().length > 0 ? (
@@ -482,9 +483,9 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Маркетплейс и продажи */}
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col h-full lg:min-h-[700px]">
             {/* Маркетплейс VPN */}
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300">
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300 flex-1">
               <div className="flex items-center mb-6">
                 <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
                   <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -525,7 +526,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Стать продавцом / Панель продавца */}
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300">
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300 flex-1">
               <div className="flex items-center mb-6">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 shadow-lg ${
                   user?.role === 'SELLER' ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'
