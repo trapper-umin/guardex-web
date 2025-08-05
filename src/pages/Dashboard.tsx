@@ -52,12 +52,9 @@ const Dashboard: React.FC = () => {
   const loadSubscriptionData = async () => {
     try {
       setIsLoadingSubscription(true);
-      const [subscriptionStatus, userSubscriptions] = await Promise.all([
-        getSubscriptionStatus(),
-        getUserSubscriptions()
-      ]);
+      const subscriptionStatus = await getSubscriptionStatus();
       setSubscription(subscriptionStatus);
-      setSubscriptions(userSubscriptions);
+      setSubscriptions(subscriptionStatus.subscriptions || []);
     } catch (error) {
       console.error('Ошибка загрузки данных подписки:', error);
       notifications.general.loadingError();
@@ -256,9 +253,13 @@ const Dashboard: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Серверы VPN</p>
+                <p className="text-sm text-gray-600">Страны</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {isLoadingSubscription ? '...' : `${subscriptions.filter(sub => sub.isActive).length} активных`}
+                  {isLoadingSubscription ? '...' : (() => {
+                    const activeSubscriptions = subscriptions.filter(sub => sub.isActive);
+                    const uniqueCountries = new Set(activeSubscriptions.map(sub => sub.country));
+                    return uniqueCountries.size > 0 ? `${uniqueCountries.size} стран` : '0 стран';
+                  })()}
                 </p>
               </div>
             </div>

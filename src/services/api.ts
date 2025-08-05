@@ -519,33 +519,15 @@ export async function deleteAccount(): Promise<void> {
   }
 }
 
-// Mock-функция получения статуса подписки
+// Получение статуса подписки пользователя
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const response = await authenticatedFetch('/vpn/user/subscription-status');
   
-  // Проверяем есть ли сохраненная подписка
-  const savedSubscription = localStorage.getItem('mockSubscription');
-  if (savedSubscription) {
-    const subscription = JSON.parse(savedSubscription);
-    const now = new Date();
-    const expiresAt = new Date(subscription.expiresAt);
-    const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    
-    return {
-      isActive: daysLeft > 0,
-      daysLeft,
-      expiresAt: subscription.expiresAt,
-      subscriptions: mockSubscriptions, // Возвращаем демонстрационные данные
-    };
+  if (!response.ok) {
+    throw new Error('Failed to fetch subscription status');
   }
   
-  // Возвращаем дефолтные данные
-  return {
-    isActive: true,
-    daysLeft: 27,
-    expiresAt: "2025-07-01",
-    subscriptions: mockSubscriptions, // Возвращаем демонстрационные данные
-  };
+  return await response.json();
 }
 
 // Mock-функция получения VPN конфигурации
@@ -615,82 +597,52 @@ export async function mockPurchaseSubscription(months: number): Promise<void> {
   localStorage.setItem('mockSubscription', JSON.stringify(subscription));
 }
 
-// Mock-функция получения всех подписок пользователя
+// Получение всех подписок пользователя
 export async function getUserSubscriptions(): Promise<VpnSubscription[]> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockSubscriptions;
+  const response = await authenticatedFetch('/vpn/user/subscriptions');
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch user subscriptions');
+  }
+  
+  return await response.json();
 }
 
-// Mock-функция получения VPN конфигурации для конкретной подписки
+// Получение VPN конфигурации для конкретной подписки
 export async function getVpnConfigForSubscription(subscriptionId: string): Promise<Blob> {
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  const response = await authenticatedFetch(`/vpn/user/subscriptions/${subscriptionId}/config`);
   
-  const subscription = mockSubscriptions.find(sub => sub.id === subscriptionId);
-  if (!subscription) {
-    throw new Error('Подписка не найдена');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch VPN config');
   }
   
-  if (!subscription.isActive) {
-    throw new Error('Подписка неактивна');
-  }
-  
-  // Создаем mock содержимое VPN конфигурации для конкретной подписки
-  const configContent = `# VPN config for ${subscription.name}
-# Server: ${subscription.server}
-# Country: ${subscription.country}
-# Speed: ${subscription.speed}
-
-[Interface]
-PrivateKey = mock_private_key_${subscriptionId}_${Date.now()}
-Address = 10.0.0.2/24
-
-[Peer]
-PublicKey = mock_server_public_key_${subscriptionId}
-Endpoint = ${subscription.server.toLowerCase().replace(/[^a-z0-9]/g, '-')}.vpn.example.com:51820
-AllowedIPs = 0.0.0.0/0
-
-# Сгенерировано: ${new Date().toLocaleString('ru-RU')}
-# Подписка: ${subscription.name}`;
-
+  const configContent = await response.text();
   return new Blob([configContent], { type: 'text/plain' });
 }
 
-// Mock-функция перегенерации VPN конфигурации для конкретной подписки
+// Перегенерация VPN конфигурации для конкретной подписки
 export async function regenerateVpnConfigForSubscription(subscriptionId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  const response = await authenticatedFetch(`/vpn/user/subscriptions/${subscriptionId}/regenerate`, {
+    method: 'POST',
+  });
   
-  const subscription = mockSubscriptions.find(sub => sub.id === subscriptionId);
-  if (!subscription) {
-    throw new Error('Подписка не найдена');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to regenerate VPN config');
   }
-  
-  if (!subscription.isActive) {
-    throw new Error('Подписка неактивна');
-  }
-  
-  // В реальном приложении здесь будет запрос на сервер для перегенерации ключей
-  console.log(`Перегенерация ключа для подписки: ${subscription.name}`);
 }
 
-// Mock-функция продления конкретной подписки
+// Продление конкретной подписки
 export async function extendSubscription(subscriptionId: string, months: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  const response = await authenticatedFetch(`/vpn/user/subscriptions/${subscriptionId}/extend?months=${months}`, {
+    method: 'POST',
+  });
   
-  const subscription = mockSubscriptions.find(sub => sub.id === subscriptionId);
-  if (!subscription) {
-    throw new Error('Подписка не найдена');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to extend subscription');
   }
-  
-  // В реальном приложении здесь был бы запрос к API
-  // Пока просто обновляем локальные данные
-  const currentDate = subscription.isActive ? new Date(subscription.expiresAt) : new Date();
-  currentDate.setMonth(currentDate.getMonth() + months);
-  
-  subscription.expiresAt = currentDate.toISOString();
-  subscription.daysLeft = Math.ceil((currentDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-  subscription.isActive = true;
-  
-  console.log(`Продление подписки ${subscription.name} на ${months} мес.`);
 }
 
 // Тестовые данные VPN предложений для маркетплейса
