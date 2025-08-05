@@ -5,7 +5,8 @@ import { ROUTES } from '../utils/routes';
 import { Footer } from '../components';
 import { notifications } from '../utils/notifications';
 import { getMarketplacePlans, purchaseVpnOffer } from '../services/api';
-import type { VpnOffer } from '../utils/types';
+import PurchaseSuccessModal from '../components/PurchaseSuccessModal';
+import type { VpnOffer, PurchaseResponse } from '../utils/types';
 
 const Marketplace: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -25,6 +26,10 @@ const Marketplace: React.FC = () => {
   // Состояния для пагинации
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6); // 6 карточек на страницу
+
+  // Состояния для модального окна успешной покупки
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [purchaseData, setPurchaseData] = useState<PurchaseResponse | null>(null);
 
   // Проверка авторизации
   useEffect(() => {
@@ -131,17 +136,25 @@ const Marketplace: React.FC = () => {
     try {
       setPurchasingIds(prev => new Set(prev).add(offerId));
       
-      await purchaseVpnOffer(offerId, plan);
+      // Получаем детальный ответ от сервера
+      const response = await purchaseVpnOffer(offerId, plan);
       
+      // Показываем модальное окно с детальной информацией
+      setPurchaseData(response);
+      setShowSuccessModal(true);
+      
+      // Также показываем краткое уведомление
       notifications.subscription.paymentSuccess();
       notifications.general.success('VPN подписка успешно приобретена!');
       
     } catch (error) {
       console.error('Ошибка при покупке:', error);
+      
       if (error instanceof Error) {
-        notifications.general.loadingError();
+        // Показываем сообщение об ошибке от сервера
+        notifications.general.error(error.message);
       } else {
-        notifications.general.loadingError();
+        notifications.general.error('Произошла неизвестная ошибка при покупке плана');
       }
     } finally {
       setPurchasingIds(prev => {
@@ -150,6 +163,15 @@ const Marketplace: React.FC = () => {
         return newSet;
       });
     }
+  };
+
+  // Обработчик закрытия модального окна
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setPurchaseData(null);
+    
+    // Опционально: обновляем список предложений
+    loadVpnOffers();
   };
 
   // Функция сброса фильтров
@@ -454,6 +476,13 @@ const Marketplace: React.FC = () => {
         )}
         </div>
       </div>
+
+      {/* Модальное окно успешной покупки */}
+      <PurchaseSuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleCloseSuccessModal}
+        purchaseData={purchaseData}
+      />
 
       <Footer />
     </div>

@@ -51,6 +51,7 @@ const SellerDashboard: React.FC = () => {
 
   // Состояние для тултипов графика
   const [hoveredDay, setHoveredDay] = useState<SalesData | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; showBelow?: boolean } | null>(null);
 
   // Состояние для модального окна создания плана
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
@@ -911,8 +912,38 @@ const SellerDashboard: React.FC = () => {
                                 <div
                                   key={day.date}
                                   className="relative flex-1 flex flex-col items-center cursor-pointer"
-                                  onMouseEnter={() => setHoveredDay(day)}
-                                  onMouseLeave={() => setHoveredDay(null)}
+                                  onMouseEnter={(e) => {
+                                    setHoveredDay(day);
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const tooltipWidth = 200; // приблизительная ширина тултипа
+                                    const tooltipHeight = 100; // приблизительная высота тултипа
+                                    
+                                    let x = rect.left + rect.width / 2;
+                                    let y = rect.top - 10;
+                                    let showBelow = false;
+                                    
+                                    // Проверяем, не выходит ли тултип за левую границу
+                                    if (x - tooltipWidth / 2 < 10) {
+                                      x = tooltipWidth / 2 + 10;
+                                    }
+                                    
+                                    // Проверяем, не выходит ли тултип за правую границу
+                                    if (x + tooltipWidth / 2 > window.innerWidth - 10) {
+                                      x = window.innerWidth - tooltipWidth / 2 - 10;
+                                    }
+                                    
+                                    // Проверяем, не выходит ли тултип за верхнюю границу
+                                    if (y - tooltipHeight < 10) {
+                                      y = rect.bottom + 10; // показываем под столбиком
+                                      showBelow = true;
+                                    }
+                                    
+                                    setTooltipPosition({ x, y, showBelow });
+                                  }}
+                                  onMouseLeave={() => {
+                                    setHoveredDay(null);
+                                    setTooltipPosition(null);
+                                  }}
                                 >
                                   <div
                                     className={`w-full min-w-[20px] sm:min-w-[28px] max-w-[40px] rounded-t-lg transition-all duration-300 ${
@@ -943,8 +974,16 @@ const SellerDashboard: React.FC = () => {
                       </div>
 
                       {/* Тултип при наведении */}
-                      {hoveredDay && (
-                        <div className="absolute top-4 left-4 bg-gray-900 text-white p-3 rounded-lg shadow-xl z-20 pointer-events-none">
+                      {hoveredDay && tooltipPosition && (
+                        <div 
+                          className={`fixed bg-gray-900 text-white p-3 rounded-lg shadow-xl z-50 pointer-events-none transform -translate-x-1/2 ${
+                            tooltipPosition.showBelow ? '' : '-translate-y-full'
+                          }`}
+                          style={{
+                            left: `${tooltipPosition.x}px`,
+                            top: `${tooltipPosition.y}px`
+                          }}
+                        >
                           <div className="text-sm font-medium">
                             {new Date(hoveredDay.date).toLocaleDateString('ru-RU', { 
                               weekday: 'long',
@@ -957,6 +996,18 @@ const SellerDashboard: React.FC = () => {
                             <div>👥 Подписчики: <span className="font-bold text-blue-400">{hoveredDay.subscribers}</span></div>
                             <div>↩️ Возвраты: <span className="font-bold text-red-400">{hoveredDay.refunds}</span></div>
                           </div>
+                          {/* Стрелка */}
+                          {tooltipPosition.showBelow ? (
+                            // Стрелка вверх (когда тултип снизу)
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2">
+                              <div className="w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-gray-900"></div>
+                            </div>
+                          ) : (
+                            // Стрелка вниз (когда тултип сверху)
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+                              <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                            </div>
+                          )}
                         </div>
                       )}
 

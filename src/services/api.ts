@@ -12,7 +12,8 @@ import type {
   ServerConnectionResult,
   WireGuardDeploymentResult,
   ServerTestingResult,
-  VpnServiceConfig
+  VpnServiceConfig,
+  PurchaseResponse
 } from "../utils/types";
 
 // Создаем базовый axios инстанс для интеграции с backend через API Gateway
@@ -890,7 +891,7 @@ export async function getVpnOffers(): Promise<VpnOffer[]> {
 export async function purchaseVpnOffer(
   offerId: string, 
   plan: 'monthly' | 'yearly' = 'monthly'
-): Promise<void> {
+): Promise<PurchaseResponse> {
   const response = await authenticatedFetch(`/vpn/marketplace/plans/${offerId}/purchase`, {
     method: 'POST',
     headers: {
@@ -903,6 +904,8 @@ export async function purchaseVpnOffer(
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Ошибка при покупке подписки');
   }
+
+  return await response.json();
 }
 
 // Мок-данные для продавца VPN

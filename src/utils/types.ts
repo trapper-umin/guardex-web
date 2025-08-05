@@ -356,4 +356,51 @@ export interface CreateServerState {
   testingResult: ServerTestingResult | null;
   serviceConfig: VpnServiceConfig | null;
   isProcessing: boolean;
+}
+
+// Типы для ответа при покупке плана
+export interface PurchaseResponse {
+  subscriptionId: string;
+  message: string;
+  plan: PlanInfo;
+  server: ServerInfo;
+  subscription: SubscriptionInfo;
+  payment: PaymentInfo;
+}
+
+export interface PlanInfo {
+  id: string;
+  name: string;
+  type: string;
+  maxConnections: number;
+  bandwidthLimit?: string;
+  speedLimit?: string;
+}
+
+export interface ServerInfo {
+  id: string;
+  name: string;
+  country: string;
+  city: string;
+  flag: string;
+  ipAddress?: string;
+  ping?: number;
+  uptime?: number;
+}
+
+export interface SubscriptionInfo {
+  billingCycle: string;
+  startDate: string;
+  endDate: string;
+  daysTotal: number;
+  isActive: boolean;
+  userEmail: string;
+}
+
+export interface PaymentInfo {
+  amount: number;
+  currency: string;
+  billingCycle: string;
+  savings?: number;
+  paymentDate: string;
 } 
