@@ -69,7 +69,7 @@ api.interceptors.response.use(
 
         try {
           console.log('🔄 Попытка обновления токена...');
-          const response = await api.post<LoginResponse>('/auth/refresh', { refreshToken });
+          const response = await api.post<LoginResponse>('/v1/auth/refresh', { refreshToken });
           const { token, refreshToken: newRefreshToken, user } = response.data;
           
           // Сохраняем новые токены
@@ -349,7 +349,7 @@ export async function register(email: string, password: string): Promise<LoginRe
   const requestData: RegisterRequest = { email, password };
   
   try {
-    const response = await api.post<LoginResponse>('/auth/register', requestData);
+    const response = await api.post<LoginResponse>('/v1/auth/register', requestData);
     const { token, refreshToken, user } = response.data;
     
     // Сохраняем токены и данные пользователя
@@ -370,7 +370,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
   const requestData: LoginRequest = { email, password };
   
   try {
-    const response = await api.post<LoginResponse>('/auth/login', requestData);
+    const response = await api.post<LoginResponse>('/v1/auth/login', requestData);
     const { token, refreshToken, user } = response.data;
     
     // Сохраняем токены и данные пользователя
@@ -389,7 +389,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
 // Функция получения профиля пользователя
 export async function getProfile(): Promise<UserProfile> {
   try {
-    const response = await api.get<UserProfile>('/auth/profile');
+    const response = await api.get<UserProfile>('/v1/auth/profile');
     
     // Обновляем сохраненные данные пользователя
     localStorage.setItem('currentUser', JSON.stringify(response.data));
@@ -419,7 +419,7 @@ export async function refreshToken(): Promise<LoginResponse> {
   }
   
   try {
-    const response = await api.post<LoginResponse>('/auth/refresh', { 
+    const response = await api.post<LoginResponse>('/v1/auth/refresh', {
       refreshToken: refreshTokenValue 
     });
     const { token, refreshToken: newRefreshToken, user } = response.data;
@@ -449,7 +449,7 @@ export async function logout(): Promise<void> {
   
   try {
     if (refreshTokenValue) {
-      await api.post('/auth/logout', { refreshToken: refreshTokenValue });
+      await api.post('/v1/auth/logout', { refreshToken: refreshTokenValue });
     }
   } catch (error) {
     console.warn('Ошибка при выходе из системы:', error);
@@ -467,7 +467,7 @@ export async function logout(): Promise<void> {
 // Функция выхода из всех устройств
 export async function logoutAll(): Promise<void> {
   try {
-    await api.post('/auth/logout-all');
+    await api.post('/v1/auth/logout-all');
     console.log('✅ Выход из всех устройств завершен');
   } catch (error) {
     console.error('❌ Ошибка выхода из всех устройств:', error);
@@ -483,7 +483,7 @@ export async function logoutAll(): Promise<void> {
 // Функция получения активных сессий
 export async function getActiveSessions(): Promise<SessionResponse[]> {
   try {
-    const response = await api.get<SessionResponse[]>('/auth/sessions');
+    const response = await api.get<SessionResponse[]>('/v1/auth/sessions');
     console.log('✅ Активные сессии получены:', response.data);
     return response.data;
   } catch (error) {
@@ -495,7 +495,7 @@ export async function getActiveSessions(): Promise<SessionResponse[]> {
 // Функция отзыва конкретной сессии
 export async function revokeSession(sessionId: number): Promise<void> {
   try {
-    await api.delete(`/auth/sessions/${sessionId}`);
+    await api.delete(`/v1/auth/sessions/${sessionId}`);
     console.log('✅ Сессия отозвана:', sessionId);
   } catch (error) {
     console.error('❌ Ошибка отзыва сессии:', error);
@@ -506,7 +506,7 @@ export async function revokeSession(sessionId: number): Promise<void> {
 // Функция удаления аккаунта
 export async function deleteAccount(): Promise<void> {
   try {
-    await api.delete('/auth/account');
+    await api.delete('/v1/auth/account');
     console.log('✅ Аккаунт удален');
   } catch (error) {
     console.error('❌ Ошибка удаления аккаунта:', error);
