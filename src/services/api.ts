@@ -521,44 +521,13 @@ export async function deleteAccount(): Promise<void> {
 
 // Получение статуса подписки пользователя
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  const response = await authenticatedFetch('/vpn/user/subscription-status');
+  const response = await authenticatedFetch('/v1/users/subscriptions/status');
   
   if (!response.ok) {
     throw new Error('Failed to fetch subscription status');
   }
   
   return await response.json();
-}
-
-// Mock-функция получения VPN конфигурации
-export async function getVpnConfig(): Promise<Blob> {
-  await new Promise((resolve) => setTimeout(resolve, 700));
-  
-  // Создаем mock содержимое VPN конфигурации
-  const configContent = `# VPN config mock
-# Это заглушка VPN-конфигурации для демонстрации
-# Реальная конфигурация будет генерироваться сервером
-
-[Interface]
-PrivateKey = mock_private_key_${Date.now()}
-Address = 10.0.0.2/24
-
-[Peer]
-PublicKey = mock_server_public_key_here
-Endpoint = vpn.example.com:51820
-AllowedIPs = 0.0.0.0/0
-
-# Сгенерировано: ${new Date().toLocaleString('ru-RU')}`;
-
-  return new Blob([configContent], { type: 'text/plain' });
-}
-
-// Mock-функция перегенерации VPN конфигурации
-export async function regenerateVpnConfig(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-  
-  // В реальном приложении здесь будет запрос на сервер для перегенерации ключей
-  // Пока просто имитируем успешную операцию
 }
 
 // Mock-функция покупки подписки
@@ -599,7 +568,7 @@ export async function mockPurchaseSubscription(months: number): Promise<void> {
 
 // Получение всех подписок пользователя
 export async function getUserSubscriptions(): Promise<VpnSubscription[]> {
-  const response = await authenticatedFetch('/vpn/user/subscriptions');
+  const response = await authenticatedFetch('/v1/users/subscriptions');
   
   if (!response.ok) {
     throw new Error('Failed to fetch user subscriptions');
@@ -610,7 +579,7 @@ export async function getUserSubscriptions(): Promise<VpnSubscription[]> {
 
 // Получение VPN конфигурации для конкретной подписки
 export async function getVpnConfigForSubscription(subscriptionId: string): Promise<Blob> {
-  const response = await authenticatedFetch(`/vpn/user/subscriptions/${subscriptionId}/config`);
+  const response = await authenticatedFetch(`/v1/users/subscriptions/${subscriptionId}/config`);
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -623,7 +592,7 @@ export async function getVpnConfigForSubscription(subscriptionId: string): Promi
 
 // Перегенерация VPN конфигурации для конкретной подписки
 export async function regenerateVpnConfigForSubscription(subscriptionId: string): Promise<void> {
-  const response = await authenticatedFetch(`/vpn/user/subscriptions/${subscriptionId}/regenerate`, {
+  const response = await authenticatedFetch(`/v1/users/subscriptions/${subscriptionId}/regenerate`, {
     method: 'POST',
   });
   
@@ -635,7 +604,7 @@ export async function regenerateVpnConfigForSubscription(subscriptionId: string)
 
 // Продление конкретной подписки
 export async function extendSubscription(subscriptionId: string, months: number): Promise<void> {
-  const response = await authenticatedFetch(`/vpn/user/subscriptions/${subscriptionId}/extend?months=${months}`, {
+  const response = await authenticatedFetch(`/v1/users/subscriptions/${subscriptionId}/extend?months=${months}`, {
     method: 'POST',
   });
   
@@ -645,18 +614,12 @@ export async function extendSubscription(subscriptionId: string, months: number)
   }
 }
 
-// Получение VPN предложений для маркетплейса 
-export async function getVpnOffers(): Promise<VpnOffer[]> {
-  // Используем существующую функцию getMarketplacePlans для единообразия
-  return await getMarketplacePlans();
-}
-
 // Покупка VPN предложения
 export async function purchaseVpnOffer(
   offerId: string, 
   plan: 'monthly' | 'yearly' = 'monthly'
 ): Promise<PurchaseResponse> {
-  const response = await authenticatedFetch(`/vpn/marketplace/plans/${offerId}/purchase`, {
+  const response = await authenticatedFetch(`/v1/marketplace/subscriptions/${offerId}/purchase`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -674,7 +637,7 @@ export async function purchaseVpnOffer(
 
 // Получение статистики продавца
 export async function getSellerStats(): Promise<SellerStats> {
-  const response = await authenticatedFetch('/vpn/seller/stats', {
+  const response = await authenticatedFetch('/v1/sellers/stats', {
     method: 'GET',
   });
 
@@ -697,7 +660,7 @@ export async function getSellerStats(): Promise<SellerStats> {
 
 // Получение списка серверов продавца
 export async function getSellerServers(): Promise<SellerServer[]> {
-  const response = await authenticatedFetch('/vpn/seller/servers', {
+  const response = await authenticatedFetch('/v1/sellers/servers', {
     method: 'GET',
   });
 
@@ -718,7 +681,7 @@ export async function getSellerServers(): Promise<SellerServer[]> {
 
 // Получение подписчиков продавца
 export async function getSellerSubscribers(): Promise<SellerSubscriber[]> {
-  const response = await authenticatedFetch('/vpn/seller/subscribers', {
+  const response = await authenticatedFetch('/v1/sellers/subscribers', {
     method: 'GET',
   });
 
@@ -737,7 +700,7 @@ export async function getSellerSubscribers(): Promise<SellerSubscriber[]> {
 
 // Получение данных о продажах за период
 export async function getSalesData(days: number = 30): Promise<SalesData[]> {
-  const response = await authenticatedFetch(`/vpn/seller/sales?days=${days}`, {
+  const response = await authenticatedFetch(`/v1/sellers/sales?days=${days}`, {
     method: 'GET',
   });
 
@@ -756,7 +719,7 @@ export async function getSalesData(days: number = 30): Promise<SalesData[]> {
 
 // Создание нового сервера
 export async function createServer(serverData: CreateServerForm): Promise<SellerServer> {
-  const response = await authenticatedFetch('/vpn/seller/servers', {
+  const response = await authenticatedFetch('/v1/servers', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -796,7 +759,7 @@ export async function updateServer(serverId: string, updates: Partial<SellerServ
     features: updates.features
   };
 
-  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}`, {
+  const response = await authenticatedFetch(`/v1/servers/${serverId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -823,7 +786,7 @@ export async function updateServer(serverId: string, updates: Partial<SellerServ
 
 // Удаление сервера
 export async function deleteServer(serverId: string): Promise<void> {
-  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}`, {
+  const response = await authenticatedFetch(`/v1/servers/${serverId}`, {
     method: 'DELETE',
   });
 
@@ -835,7 +798,7 @@ export async function deleteServer(serverId: string): Promise<void> {
 
 // Переключение статуса сервера
 export async function toggleServerStatus(serverId: string): Promise<SellerServer> {
-  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}/toggle`, {
+  const response = await authenticatedFetch(`/v1/servers/${serverId}/toggle`, {
     method: 'PATCH',
   });
 
@@ -872,7 +835,7 @@ function getFlagByCountryCode(countryCode: string): string {
 // Проверка подключения к серверу
 export async function checkServerConnection(connectionData: ServerConnectionData): Promise<ServerConnectionResult> {
   try {
-    const response = await authenticatedFetch('/vpn/seller/servers/test-connection', {
+    const response = await authenticatedFetch('/v1/servers/test-connection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1132,7 +1095,7 @@ export async function testServerReadinessWithProgress(
 // Развертывание WireGuard на сервере
 export async function deployWireGuard(serverIp: string): Promise<WireGuardDeploymentResult> {
   try {
-    const response = await authenticatedFetch(`/vpn/seller/servers/deploy-wireguard?serverIp=${encodeURIComponent(serverIp)}`, {
+    const response = await authenticatedFetch(`/v1/servers/deploy-wireguard?serverIp=${encodeURIComponent(serverIp)}`, {
       method: 'POST',
     });
 
@@ -1157,7 +1120,7 @@ export async function deployWireGuard(serverIp: string): Promise<WireGuardDeploy
 // Тестирование готовности сервера
 export async function testServerReadiness(serverIp: string): Promise<ServerTestingResult> {
   try {
-    const response = await authenticatedFetch(`/vpn/seller/servers/test-readiness?serverIp=${encodeURIComponent(serverIp)}`, {
+    const response = await authenticatedFetch(`/v1/servers/test-readiness?serverIp=${encodeURIComponent(serverIp)}`, {
       method: 'POST',
     });
 
@@ -1239,7 +1202,7 @@ export async function becomeSeller(request: BecomeSellerRequest): Promise<UserPr
 
 // Получение всех планов продавца
 export async function getSellerPlans(): Promise<SubscriptionPlan[]> {
-  const response = await authenticatedFetch('/vpn/seller/plans', {
+  const response = await authenticatedFetch('/v1/sellers/subscriptions', {
     method: 'GET',
   });
 
@@ -1261,7 +1224,7 @@ export async function getSellerPlans(): Promise<SubscriptionPlan[]> {
 
 // Получение планов для конкретного сервера
 export async function getServerPlans(serverId: string): Promise<SubscriptionPlan[]> {
-  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}/plans`, {
+  const response = await authenticatedFetch(`/v1/sellers/servers/${serverId}/subscriptions`, {
     method: 'GET',
   });
 
@@ -1283,7 +1246,7 @@ export async function getServerPlans(serverId: string): Promise<SubscriptionPlan
 
 // Создание нового плана подписки
 export async function createSubscriptionPlan(serverId: string, planData: CreateSubscriptionPlanForm): Promise<SubscriptionPlan> {
-  const response = await authenticatedFetch(`/vpn/seller/servers/${serverId}/plans`, {
+  const response = await authenticatedFetch(`/v1/sellers/servers/${serverId}/subscriptions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1310,7 +1273,7 @@ export async function createSubscriptionPlan(serverId: string, planData: CreateS
 
 // Обновление плана подписки
 export async function updateSubscriptionPlan(planId: string, planData: CreateSubscriptionPlanForm): Promise<SubscriptionPlan> {
-  const response = await authenticatedFetch(`/vpn/seller/plans/${planId}`, {
+  const response = await authenticatedFetch(`/v1/sellers/servers/subscriptions/${planId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -1337,7 +1300,7 @@ export async function updateSubscriptionPlan(planId: string, planData: CreateSub
 
 // Переключение статуса плана
 export async function togglePlanStatus(planId: string): Promise<SubscriptionPlan> {
-  const response = await authenticatedFetch(`/vpn/seller/plans/${planId}/toggle`, {
+  const response = await authenticatedFetch(`/v1/sellers/servers/subscriptions/${planId}/toggle`, {
     method: 'PATCH',
   });
 
@@ -1360,7 +1323,7 @@ export async function togglePlanStatus(planId: string): Promise<SubscriptionPlan
 
 // Удаление плана подписки
 export async function deleteSubscriptionPlan(planId: string): Promise<void> {
-  const response = await authenticatedFetch(`/vpn/seller/plans/${planId}`, {
+  const response = await authenticatedFetch(`/v1/sellers/servers/subscriptions/${planId}`, {
     method: 'DELETE',
   });
 
@@ -1372,7 +1335,7 @@ export async function deleteSubscriptionPlan(planId: string): Promise<void> {
 
 // Получение планов для маркетплейса
 export async function getMarketplacePlans(): Promise<VpnOffer[]> {
-  const response = await authenticatedFetch('/vpn/marketplace/plans', {
+  const response = await authenticatedFetch('/v1/marketplace/subscriptions', {
     method: 'GET',
   });
 
