@@ -9,4 +9,7 @@ export { default as Router } from './Router';
 export { default as SubscriptionModal } from './SubscriptionModal';
 export { default as DeleteAccountModal } from './DeleteAccountModal';
 export { BecomeSellerModal } from './BecomeSellerModal';
-export { default as PurchaseSuccessModal } from './PurchaseSuccessModal'; 
+export { default as PurchaseSuccessModal } from './PurchaseSuccessModal';
+
+// Seller components
+export * from './seller'; 
