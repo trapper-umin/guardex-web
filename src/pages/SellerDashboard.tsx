@@ -4,6 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../utils/routes';
 import { Footer } from '../components';
 import { notifications } from '../utils/notifications';
+import { 
+  BarChart3, 
+  Server, 
+  DollarSign, 
+  Users, 
+  TrendingUp, 
+  Plus, 
+  Star, 
+  ChevronLeft, 
+  ChevronRight, 
+  X 
+} from 'lucide-react';
 import {
   getSellerStats,
   getSellerServers,
@@ -264,33 +276,47 @@ const SellerDashboard: React.FC = () => {
         {/* Табы - адаптивные */}
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200 mb-6 sm:mb-8 overflow-hidden">
           <div className="border-b border-gray-200">
-            <nav className="flex overflow-x-auto">
-              {[
-                { id: 'overview', name: 'Обзор', icon: '📊' },
-                { id: 'servers', name: 'Серверы', icon: '🖥️' },
-                { id: 'plans', name: 'Планы', icon: '💰' },
-                { id: 'subscribers', name: 'Подписчики', icon: '👥' },
-                { id: 'analytics', name: 'Аналитика', icon: '📈' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id as typeof activeTab);
-                    setCurrentServerPage(1);
-                    setCurrentPlanPage(1);
-                    setCurrentSubscriberPage(1);
-                  }}
-                  className={`relative min-w-0 flex-1 sm:flex-none sm:px-8 px-4 py-3 sm:py-4 text-center border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } transition-colors duration-200`}
-                >
-                  <span className="inline sm:hidden text-lg">{tab.icon}</span>
-                  <span className="hidden sm:inline">{tab.icon} {tab.name}</span>
-                  <span className="sm:hidden block text-xs mt-1">{tab.name}</span>
-                </button>
-              ))}
+            <nav className="flex overflow-x-auto scrollbar-hide">
+              <div className="flex min-w-full sm:min-w-0">
+                {[
+                  { id: 'overview', name: 'Обзор', icon: BarChart3 },
+                  { id: 'servers', name: 'Серверы', icon: Server },
+                  { id: 'plans', name: 'Планы', icon: DollarSign },
+                  { id: 'subscribers', name: 'Подписчики', icon: Users },
+                  { id: 'analytics', name: 'Аналитика', icon: TrendingUp }
+                ].map((tab) => {
+                  const IconComponent = tab.icon;
+                  return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id as typeof activeTab);
+                      setCurrentServerPage(1);
+                      setCurrentPlanPage(1);
+                      setCurrentSubscriberPage(1);
+                    }}
+                    className={`relative flex-shrink-0 sm:flex-shrink sm:flex-grow-0 px-3 sm:px-8 py-3 sm:py-4 border-b-2 font-medium text-xs sm:text-base transition-colors duration-200 ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600 bg-blue-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    style={{ minWidth: '72px' }}
+                  >
+                    {/* Мобильная версия: иконка + текст вертикально */}
+                    <div className="flex flex-col items-center gap-1 sm:hidden">
+                      <IconComponent className="w-4 h-4" />
+                      <span className="text-xs font-medium">{tab.name}</span>
+                    </div>
+                    
+                    {/* Десктопная версия: иконка + текст горизонтально */}
+                    <div className="hidden sm:flex items-center gap-2">
+                      <IconComponent className="w-4 h-4" />
+                      <span>{tab.name}</span>
+                    </div>
+                  </button>
+                  );
+                })}
+              </div>
             </nav>
           </div>
 
@@ -311,7 +337,7 @@ const SellerDashboard: React.FC = () => {
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
                         <div className="flex items-center">
                           <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center mr-2 sm:mr-4">
-                            <span className="text-white text-sm sm:text-xl">🖥️</span>
+                            <Server className="text-white w-4 h-4 sm:w-6 sm:h-6" />
                           </div>
                           <div>
                             <p className="text-xs sm:text-sm text-blue-600">Серверы</p>
@@ -324,7 +350,7 @@ const SellerDashboard: React.FC = () => {
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
                         <div className="flex items-center">
                           <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-600 rounded-lg sm:rounded-xl flex items-center justify-center mr-2 sm:mr-4">
-                            <span className="text-white text-sm sm:text-xl">👥</span>
+                            <Users className="text-white w-4 h-4 sm:w-6 sm:h-6" />
                           </div>
                           <div>
                             <p className="text-xs sm:text-sm text-green-600">Подписчики</p>
@@ -337,7 +363,7 @@ const SellerDashboard: React.FC = () => {
                       <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
                         <div className="flex items-center">
                           <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center mr-2 sm:mr-4">
-                            <span className="text-white text-sm sm:text-xl">💰</span>
+                            <DollarSign className="text-white w-4 h-4 sm:w-6 sm:h-6" />
                           </div>
                           <div>
                             <p className="text-xs sm:text-sm text-purple-600">Месячный доход</p>
@@ -347,10 +373,10 @@ const SellerDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                                                 <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                      <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl sm:rounded-2xl p-3 sm:p-6">
                         <div className="flex items-center">
                           <div className="w-8 h-8 sm:w-12 sm:h-12 bg-orange-600 rounded-lg sm:rounded-xl flex items-center justify-center mr-2 sm:mr-4">
-                            <span className="text-white text-sm sm:text-xl">💰</span>
+                            <DollarSign className="text-white w-4 h-4 sm:w-6 sm:h-6" />
                           </div>
                           <div>
                             <p className="text-xs sm:text-sm text-orange-600">Планы</p>
@@ -367,21 +393,24 @@ const SellerDashboard: React.FC = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <button
                           onClick={() => navigate(ROUTES.CREATE_SERVER)}
-                          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
+                          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base flex items-center gap-2 justify-center"
                         >
-                          ➕ Добавить сервер
+                          <Plus className="w-4 h-4" />
+                          Добавить сервер
                         </button>
                         <button
                           onClick={() => setActiveTab('plans')}
-                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base flex items-center gap-2 justify-center"
                         >
-                          💰 Управление планами
+                          <DollarSign className="w-4 h-4" />
+                          Управление планами
                         </button>
                         <button
                           onClick={() => setActiveTab('analytics')}
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base flex items-center gap-2 justify-center"
                         >
-                          📊 Посмотреть аналитику
+                          <BarChart3 className="w-4 h-4" />
+                          Посмотреть аналитику
                         </button>
                       </div>
                     </div>
@@ -421,9 +450,10 @@ const SellerDashboard: React.FC = () => {
 
                       <button
                         onClick={() => navigate(ROUTES.CREATE_SERVER)}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm flex items-center gap-2"
                       >
-                        ➕ Добавить сервер
+                        <Plus className="w-4 h-4" />
+                        Добавить сервер
                       </button>
                     </div>
 
@@ -505,13 +535,14 @@ const SellerDashboard: React.FC = () => {
                         <button
                           onClick={() => setCurrentServerPage(Math.max(1, currentServerPage - 1))}
                           disabled={currentServerPage === 1}
-                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base flex items-center gap-2 ${
                             currentServerPage === 1
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
                           }`}
                         >
-                          <span className="hidden sm:inline">← </span>Назад
+                          <ChevronLeft className="w-4 h-4" />
+                          <span className="hidden sm:inline">Назад</span>
                         </button>
                         
                         <div className="flex space-x-1 sm:space-x-2">
@@ -533,13 +564,14 @@ const SellerDashboard: React.FC = () => {
                         <button
                           onClick={() => setCurrentServerPage(Math.min(totalServerPages, currentServerPage + 1))}
                           disabled={currentServerPage === totalServerPages}
-                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base flex items-center gap-2 ${
                             currentServerPage === totalServerPages
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
                           }`}
                         >
-                          Вперед<span className="hidden sm:inline"> →</span>
+                          <span className="hidden sm:inline">Вперед</span>
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     )}
@@ -579,9 +611,10 @@ const SellerDashboard: React.FC = () => {
 
                       <button
                         onClick={() => setShowCreatePlanModal(true)}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm flex items-center gap-2"
                       >
-                        ➕ Добавить план
+                        <Plus className="w-4 h-4" />
+                        Добавить план
                       </button>
                     </div>
 
@@ -631,7 +664,7 @@ const SellerDashboard: React.FC = () => {
                             </div>
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600">Подписчики:</span>
-                              <span className="text-blue-600 font-bold">{plan.activeSubscribers}/{plan.totalSubscribers}</span>
+                              <span className="text-blue-600 font-bold">{plan.activeSubscribers}/{plan.maxConnections}</span>
                             </div>
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600">Месячный доход:</span>
@@ -639,7 +672,10 @@ const SellerDashboard: React.FC = () => {
                             </div>
                             {plan.isPopular && (
                               <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-2 py-1">
-                                <span className="text-xs text-yellow-800 font-medium">⭐ Популярный</span>
+                                <span className="text-xs text-yellow-800 font-medium flex items-center gap-1">
+                                  <Star className="w-3 h-3" />
+                                  Популярный
+                                </span>
                               </div>
                             )}
                           </div>
@@ -672,13 +708,14 @@ const SellerDashboard: React.FC = () => {
                         <button
                           onClick={() => setCurrentPlanPage(Math.max(1, currentPlanPage - 1))}
                           disabled={currentPlanPage === 1}
-                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base flex items-center gap-2 ${
                             currentPlanPage === 1
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
                           }`}
                         >
-                          <span className="hidden sm:inline">← </span>Назад
+                          <ChevronLeft className="w-4 h-4" />
+                          <span className="hidden sm:inline">Назад</span>
                         </button>
                         
                         <div className="flex space-x-1 sm:space-x-2">
@@ -700,13 +737,14 @@ const SellerDashboard: React.FC = () => {
                         <button
                           onClick={() => setCurrentPlanPage(Math.min(totalPlanPages, currentPlanPage + 1))}
                           disabled={currentPlanPage === totalPlanPages}
-                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base flex items-center gap-2 ${
                             currentPlanPage === totalPlanPages
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
                           }`}
                         >
-                          Вперед<span className="hidden sm:inline"> →</span>
+                          <span className="hidden sm:inline">Вперед</span>
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     )}
@@ -854,13 +892,14 @@ const SellerDashboard: React.FC = () => {
                         <button
                           onClick={() => setCurrentSubscriberPage(Math.max(1, currentSubscriberPage - 1))}
                           disabled={currentSubscriberPage === 1}
-                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base flex items-center gap-2 ${
                             currentSubscriberPage === 1
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
                           }`}
                         >
-                          <span className="hidden sm:inline">← </span>Назад
+                          <ChevronLeft className="w-4 h-4" />
+                          <span className="hidden sm:inline">Назад</span>
                         </button>
                         
                         <div className="flex space-x-1 sm:space-x-2">
@@ -882,13 +921,14 @@ const SellerDashboard: React.FC = () => {
                         <button
                           onClick={() => setCurrentSubscriberPage(Math.min(totalSubscriberPages, currentSubscriberPage + 1))}
                           disabled={currentSubscriberPage === totalSubscriberPages}
-                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                          className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base flex items-center gap-2 ${
                             currentSubscriberPage === totalSubscriberPages
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-white hover:bg-gray-50 text-gray-700 shadow-lg hover:shadow-xl'
                           }`}
                         >
-                          Вперед<span className="hidden sm:inline"> →</span>
+                          <span className="hidden sm:inline">Вперед</span>
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     )}
@@ -966,7 +1006,7 @@ const SellerDashboard: React.FC = () => {
                           ) : (
                             <div className="flex-1 flex items-center justify-center h-full">
                               <div className="text-gray-500 text-center">
-                                <div className="text-4xl mb-2">📊</div>
+                                <BarChart3 className="w-16 h-16 mx-auto mb-2 text-gray-400" />
                                 <p>Нет данных для отображения</p>
                               </div>
                             </div>
@@ -993,9 +1033,18 @@ const SellerDashboard: React.FC = () => {
                             })}
                           </div>
                           <div className="text-xs mt-1 space-y-1">
-                            <div>💰 Доход: <span className="font-bold text-green-400">${hoveredDay.revenue}</span></div>
-                            <div>👥 Подписчики: <span className="font-bold text-blue-400">{hoveredDay.subscribers}</span></div>
-                            <div>↩️ Возвраты: <span className="font-bold text-red-400">{hoveredDay.refunds}</span></div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3" />
+                              Доход: <span className="font-bold text-green-400">${hoveredDay.revenue}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              Подписчики: <span className="font-bold text-blue-400">{hoveredDay.subscribers}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3 rotate-180" />
+                              Возвраты: <span className="font-bold text-red-400">{hoveredDay.refunds}</span>
+                            </div>
                           </div>
                           {/* Стрелка */}
                           {tooltipPosition.showBelow ? (
@@ -1138,9 +1187,9 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ servers, onClose, onS
             <h2 className="text-2xl font-bold text-gray-900">Создать план подписки</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              ×
+              <X className="w-5 h-5" />
             </button>
           </div>
 
