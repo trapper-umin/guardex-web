@@ -4,29 +4,28 @@ import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../utils/routes';
 import { 
   getSubscriptionStatus, 
-  getUserSubscriptions,
   getVpnConfigForSubscription, 
   regenerateVpnConfigForSubscription,
-  extendSubscription,
-  type SubscriptionStatus 
+  extendSubscription
 } from '../services/api';
 import type { VpnSubscription } from '../utils/types';
 import { SubscriptionModal, Footer, BecomeSellerModal } from '../components';
-import { buttonStyles, cardStyles } from '../utils/styles';
+// import { buttonStyles, cardStyles } from '../utils/styles';
 import { notifications } from '../utils/notifications';
+import { AlertTriangle, RotateCw, Search, Lock, Shield, Star, Server, Download, HelpCircle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
   // Состояния для данных и лоадеров
-  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  // const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [subscriptions, setSubscriptions] = useState<VpnSubscription[]>([]);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [downloadingConfigs, setDownloadingConfigs] = useState<Set<string>>(new Set());
   const [regeneratingKeys, setRegeneratingKeys] = useState<Set<string>>(new Set());
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const [selectedSubscriptionForExtension, setSelectedSubscriptionForExtension] = useState<string | null>(null);
+  // const [selectedSubscriptionForExtension, setSelectedSubscriptionForExtension] = useState<string | null>(null);
   const [isBecomeSellerModalOpen, setIsBecomeSellerModalOpen] = useState(false);
   
   // Состояния для фильтров
@@ -53,7 +52,7 @@ const Dashboard: React.FC = () => {
     try {
       setIsLoadingSubscription(true);
       const subscriptionStatus = await getSubscriptionStatus();
-      setSubscription(subscriptionStatus);
+      // setSubscription(subscriptionStatus);
       setSubscriptions(subscriptionStatus.subscriptions || []);
     } catch (error) {
       console.error('Ошибка загрузки данных подписки:', error);
@@ -208,9 +207,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                </svg>
+                <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Активные подписки</p>
@@ -224,9 +221,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
+                <Star className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Мин. до истечения</p>
@@ -248,9 +243,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17 3H5c-1.14 0-2 .86-2 2v2c0 1.14.86 2 2 2h14c1.14 0 2-.86 2-2V5c0-1.14-.86-2-2-2h-2z M17 16c0 1.14-.86 2-2 2H5c-1.14 0-2-.86-2-2v-2c0-1.14.86-2 2-2h10c1.14 0 2 .86 2 2v2z"/>
-                </svg>
+                <Server className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Страны</p>
@@ -272,9 +265,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-4 sm:p-8 hover:shadow-2xl transition-shadow duration-300 flex flex-col lg:min-h-[700px]">
             <div className="flex items-center mb-4 sm:mb-6">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg">
-                <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                </svg>
+                <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Мои подписки</h2>
@@ -393,7 +384,9 @@ const Dashboard: React.FC = () => {
                         {sub.daysLeft <= 7 && sub.isActive && (
                           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 sm:p-3 mb-3">
                             <div className="flex items-center">
-                              <div className="text-yellow-500 text-base sm:text-lg mr-2 flex-shrink-0">⚠️</div>
+                              <div className="text-yellow-500 text-base sm:text-lg mr-2 flex-shrink-0">
+                                <AlertTriangle className="w-5 h-5" />
+                              </div>
                               <p className="text-xs sm:text-sm text-yellow-800">
                                 <span className="hidden sm:inline">Подписка заканчивается через {sub.daysLeft} {sub.daysLeft === 1 ? 'день' : 'дня'}</span>
                                 <span className="sm:hidden">Истекает через {sub.daysLeft}д</span>
@@ -421,9 +414,7 @@ const Dashboard: React.FC = () => {
                               </>
                             ) : (
                               <>
-                                <svg className="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                                </svg>
+                                <Download className="w-3.5 h-3.5 mr-1.5" />
                                 <span className="hidden sm:inline">Скачать</span>
                                 <span className="sm:hidden">Ключ</span>
                               </>
@@ -448,11 +439,11 @@ const Dashboard: React.FC = () => {
                               </>
                             ) : (
                               <>
-                                <svg className="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.25,13.97 6,13 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,11 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z"/>
-                                </svg>
+                                <RotateCw className="w-3.5 h-3.5 mr-1.5" />
                                 <span className="hidden sm:inline">Обновить</span>
-                                <span className="sm:hidden">🔄</span>
+                                <span className="sm:hidden">
+                                  <RotateCw className="w-4 h-4" />
+                                </span>
                               </>
                             )}
                           </button>
@@ -468,7 +459,9 @@ const Dashboard: React.FC = () => {
                     ))
                   ) : (
                     <div className="text-center py-8">
-                      <div className="text-gray-400 text-4xl mb-4">🔍</div>
+                      <div className="text-gray-400 mb-4">
+                        <Search className="w-12 h-12 mx-auto" />
+                      </div>
                       <p className="text-gray-600 text-sm">Нет подписок, соответствующих выбранным фильтрам</p>
                     </div>
                   )}
@@ -476,7 +469,9 @@ const Dashboard: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-6 sm:py-8">
-                <div className="text-gray-400 text-4xl sm:text-6xl mb-3 sm:mb-4">🔒</div>
+                <div className="text-gray-400 mb-3 sm:mb-4">
+                  <Lock className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" />
+                </div>
                 <p className="text-gray-600 text-sm sm:text-base">У вас пока нет активных подписок</p>
               </div>
             )}
@@ -488,9 +483,7 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow duration-300 flex-1">
               <div className="flex items-center mb-6">
                 <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                  <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
+                  <Star className="w-7 h-7 text-white" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Маркетплейс VPN</h2>
@@ -531,13 +524,11 @@ const Dashboard: React.FC = () => {
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 shadow-lg ${
                   user?.role === 'SELLER' ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'
                 }`}>
-                  <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    {user?.role === 'SELLER' ? (
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    ) : (
-                      <path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"/>
-                    )}
-                  </svg>
+                  {user?.role === 'SELLER' ? (
+                    <Star className="w-7 h-7 text-white" />
+                  ) : (
+                    <HelpCircle className="w-7 h-7 text-white" />
+                  )}
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">

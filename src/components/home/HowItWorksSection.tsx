@@ -1,4 +1,5 @@
 import React from 'react';
+import { UserPlus, Settings, CheckCircle2 } from 'lucide-react';
 
 const HowItWorksSection: React.FC = () => {
   return (
@@ -14,7 +15,7 @@ const HowItWorksSection: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">1️⃣</span>
+              <UserPlus className="w-8 h-8 text-blue-600" aria-hidden="true" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Регистрация</h3>
             <p className="text-gray-600">
@@ -24,7 +25,7 @@ const HowItWorksSection: React.FC = () => {
           
           <div className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">2️⃣</span>
+              <Settings className="w-8 h-8 text-blue-600" aria-hidden="true" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Настройка</h3>
             <p className="text-gray-600">
@@ -34,7 +35,7 @@ const HowItWorksSection: React.FC = () => {
           
           <div className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">3️⃣</span>
+              <CheckCircle2 className="w-8 h-8 text-blue-600" aria-hidden="true" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Результат</h3>
             <p className="text-gray-600">

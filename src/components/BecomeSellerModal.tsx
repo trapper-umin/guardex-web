@@ -3,6 +3,7 @@ import { becomeSeller, type BecomeSellerRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { notifications } from '../utils/notifications';
 import type { BecomeSellerForm } from '../utils/types';
+import { X, Info } from 'lucide-react';
 
 interface BecomeSellerModalProps {
   isOpen: boolean;
@@ -85,9 +86,7 @@ export const BecomeSellerModal: React.FC<BecomeSellerModalProps> = ({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             </button>
           </div>
 
@@ -95,9 +94,7 @@ export const BecomeSellerModal: React.FC<BecomeSellerModalProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <div className="flex items-start">
                 <div className="text-blue-500 mr-3 mt-0.5">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                  </svg>
+                  <Info className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-blue-800 mb-1">Информация</h3>

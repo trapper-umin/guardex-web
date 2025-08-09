@@ -1,4 +1,5 @@
 import React from 'react';
+import { Lock, BadgeCheck, CreditCard, Phone } from 'lucide-react';
 
 const TrustSection: React.FC = () => {
   return (
@@ -15,22 +16,22 @@ const TrustSection: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="text-center">
-            <div className="text-4xl mb-3">🔒</div>
+            <Lock className="w-10 h-10 mx-auto mb-3 text-white" aria-hidden="true" />
             <h4 className="text-white font-semibold mb-2">Шифрование</h4>
             <p className="text-gray-400 text-sm">AES-256 + WireGuard</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl mb-3">🏛️</div>
+            <BadgeCheck className="w-10 h-10 mx-auto mb-3 text-white" aria-hidden="true" />
             <h4 className="text-white font-semibold mb-2">Лицензии</h4>
             <p className="text-gray-400 text-sm">Полностью легально</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl mb-3">💳</div>
+            <CreditCard className="w-10 h-10 mx-auto mb-3 text-white" aria-hidden="true" />
             <h4 className="text-white font-semibold mb-2">Платежи</h4>
             <p className="text-gray-400 text-sm">Stripe, PayPal, криптовалюты</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl mb-3">📞</div>
+            <Phone className="w-10 h-10 mx-auto mb-3 text-white" aria-hidden="true" />
             <h4 className="text-white font-semibold mb-2">Поддержка</h4>
             <p className="text-gray-400 text-sm">24/7 техподдержка</p>
           </div>

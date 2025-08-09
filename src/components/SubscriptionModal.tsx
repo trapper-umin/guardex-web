@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { mockPurchaseSubscription } from '../services/api';
 import { notifications } from '../utils/notifications';
+import { Info, PartyPopper, X } from 'lucide-react';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -78,17 +79,16 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
             disabled={isProcessing}
             className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Информационное сообщение */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-          <p className="text-blue-800 text-sm">
-            ℹ️ Выбранное время будет добавлено к вашей текущей подписке
-          </p>
+          <div className="flex items-center text-blue-800 text-sm">
+            <Info className="w-4 h-4 mr-2 flex-shrink-0" />
+            <p>Выбранное время будет добавлено к вашей текущей подписке</p>
+          </div>
         </div>
 
         <div className="mb-6">
@@ -148,10 +148,13 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
           {/* Информация о выгоде */}
           {selectedMonths >= 6 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <p className="text-green-800 text-sm">
-                🎉 {selectedMonths >= 12 ? 'Максимальная выгода!' : 'Выгодный тариф!'} 
-                {discount > 0 && ` Вы экономите ${discountAmount} ₽`}
-              </p>
+              <div className="flex items-center text-green-800 text-sm">
+                <PartyPopper className="w-4 h-4 mr-2 flex-shrink-0" />
+                <p>
+                  {selectedMonths >= 12 ? 'Максимальная выгода!' : 'Выгодный тариф!'} 
+                  {discount > 0 && ` Вы экономите ${discountAmount} ₽`}
+                </p>
+              </div>
             </div>
           )}
         </div>
