@@ -132,3 +132,4 @@ export const SellerPlans: React.FC<SellerPlansProps> = ({
     </div>
   );
 };
+
