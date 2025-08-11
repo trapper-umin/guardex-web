@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PlanCard } from './PlanCard';
 import { Pagination } from './Pagination';
@@ -31,6 +31,51 @@ export const SellerPlans: React.FC<SellerPlansProps> = ({
   onDeletePlan,
   onCreatePlan
 }) => {
+  // Состояние для анимации смены страниц
+  const [isPageChanging, setIsPageChanging] = useState(false);
+
+  // Обработчик смены страницы с анимацией
+  const handlePageChange = (newPage: number) => {
+    if (newPage === currentPlanPage || isPageChanging) return;
+    
+    setIsPageChanging(true);
+    
+    // Небольшая задержка для анимации
+    setTimeout(() => {
+      onPageChange(newPage);
+      setIsPageChanging(false);
+    }, 150);
+  };
+
+  // Обработчики свайп-жестов
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentPlanPage < totalPlanPages) {
+      handlePageChange(currentPlanPage + 1);
+    }
+    if (isRightSwipe && currentPlanPage > 1) {
+      handlePageChange(currentPlanPage - 1);
+    }
+  };
+
   // Фильтрация и сортировка планов
   const getFilteredAndSortedPlans = () => {
     let filtered = [...plans];
@@ -112,7 +157,14 @@ export const SellerPlans: React.FC<SellerPlansProps> = ({
       </div>
 
       {/* Список планов - адаптивный */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+      <div 
+        className={`plans-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 transition-all duration-300 ${
+          isPageChanging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {currentPlans.map((plan) => (
           <PlanCard
             key={plan.id}
@@ -127,9 +179,10 @@ export const SellerPlans: React.FC<SellerPlansProps> = ({
       <Pagination
         currentPage={currentPlanPage}
         totalPages={totalPlanPages}
-        onPageChange={onPageChange}
+        onPageChange={handlePageChange}
       />
     </div>
   );
 };
+
 

@@ -72,3 +72,4 @@ export const ServerCard: React.FC<ServerCardProps> = ({
   );
 };
 
+

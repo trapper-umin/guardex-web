@@ -56,13 +56,13 @@ const SellerDashboard: React.FC = () => {
   const [planFilter, setPlanFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [planSortBy, setPlanSortBy] = useState<'name' | 'server' | 'type' | 'revenue'>('revenue');
   const [currentPlanPage, setCurrentPlanPage] = useState(1);
-  const [plansPerPage] = useState(8);
+  const [plansPerPage] = useState(6); // 6 планов для сетки 2x3
 
   // Состояния для подписчиков  
   const [subscriberFilter, setSubscriberFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [subscriberSortBy, setSubscriberSortBy] = useState<'email' | 'server' | 'date' | 'paid'>('date');
   const [currentSubscriberPage, setCurrentSubscriberPage] = useState(1);
-  const [subscribersPerPage] = useState(8);
+  const [subscribersPerPage] = useState(8); // 6 подписчиков для консистентности
 
   // Состояние для модального окна создания плана
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { ServerCard } from './ServerCard';
@@ -32,6 +32,51 @@ export const SellerServers: React.FC<SellerServersProps> = ({
   onDeleteServer
 }) => {
   const navigate = useNavigate();
+
+  // Состояние для анимации смены страниц
+  const [isPageChanging, setIsPageChanging] = useState(false);
+
+  // Обработчик смены страницы с анимацией
+  const handlePageChange = (newPage: number) => {
+    if (newPage === currentServerPage || isPageChanging) return;
+    
+    setIsPageChanging(true);
+    
+    // Небольшая задержка для анимации
+    setTimeout(() => {
+      onPageChange(newPage);
+      setIsPageChanging(false);
+    }, 150);
+  };
+
+  // Обработчики свайп-жестов
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentServerPage < totalServerPages) {
+      handlePageChange(currentServerPage + 1);
+    }
+    if (isRightSwipe && currentServerPage > 1) {
+      handlePageChange(currentServerPage - 1);
+    }
+  };
 
   // Фильтрация и сортировка серверов
   const getFilteredAndSortedServers = () => {
@@ -114,7 +159,14 @@ export const SellerServers: React.FC<SellerServersProps> = ({
       </div>
 
       {/* Список серверов - адаптивный */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+      <div 
+        className={`servers-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 transition-all duration-300 ${
+          isPageChanging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {currentServers.map((server) => (
           <ServerCard
             key={server.id}
@@ -129,9 +181,10 @@ export const SellerServers: React.FC<SellerServersProps> = ({
       <Pagination
         currentPage={currentServerPage}
         totalPages={totalServerPages}
-        onPageChange={onPageChange}
+        onPageChange={handlePageChange}
       />
     </div>
   );
 };
+
 

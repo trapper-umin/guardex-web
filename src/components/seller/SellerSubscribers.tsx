@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pagination } from './Pagination';
 import type { SellerSubscriber } from '../../utils/types';
 
@@ -23,6 +23,51 @@ export const SellerSubscribers: React.FC<SellerSubscribersProps> = ({
   onSortChange,
   onPageChange
 }) => {
+  // Состояние для анимации смены страниц
+  const [isPageChanging, setIsPageChanging] = useState(false);
+
+  // Обработчик смены страницы с анимацией
+  const handlePageChange = (newPage: number) => {
+    if (newPage === currentSubscriberPage || isPageChanging) return;
+    
+    setIsPageChanging(true);
+    
+    // Небольшая задержка для анимации
+    setTimeout(() => {
+      onPageChange(newPage);
+      setIsPageChanging(false);
+    }, 150);
+  };
+
+  // Обработчики свайп-жестов
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentSubscriberPage < totalSubscriberPages) {
+      handlePageChange(currentSubscriberPage + 1);
+    }
+    if (isRightSwipe && currentSubscriberPage > 1) {
+      handlePageChange(currentSubscriberPage - 1);
+    }
+  };
+
   // Фильтрация и сортировка подписчиков
   const getFilteredAndSortedSubscribers = () => {
     let filtered = [...subscribers];
@@ -94,7 +139,14 @@ export const SellerSubscribers: React.FC<SellerSubscribersProps> = ({
       </div>
 
       {/* Таблица подписчиков - адаптивная */}
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+      <div 
+        className={`subscribers-container bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 overflow-hidden transition-all duration-300 ${
+          isPageChanging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Мобильная версия - карточки */}
         <div className="block sm:hidden divide-y divide-gray-200">
           {currentSubscribers.map((subscriber) => (
@@ -192,9 +244,10 @@ export const SellerSubscribers: React.FC<SellerSubscribersProps> = ({
       <Pagination
         currentPage={currentSubscriberPage}
         totalPages={totalSubscriberPages}
-        onPageChange={onPageChange}
+        onPageChange={handlePageChange}
       />
     </div>
   );
 };
+
 
