@@ -1185,7 +1185,7 @@ function getTestDetails(testId: string): string {
 // Функция для получения роли продавца
 export async function becomeSeller(request: BecomeSellerRequest): Promise<UserProfile> {
   try {
-    const response = await api.post<UserProfile>('/auth/become-seller', request);
+    const response = await api.post<UserProfile>('/v1/auth/become-seller', request);
     
     // Обновляем сохраненные данные пользователя
     localStorage.setItem('currentUser', JSON.stringify(response.data));
